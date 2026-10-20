@@ -141,7 +141,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 @keyframes draw { to { transform: scaleX(1); } }
 .hero-lede { max-width: 34em; color: var(--ink-2); font-size: clamp(15px, 1.25vw, 18px); margin: 28px 0 32px; opacity: 0; animation: fade .9s .45s forwards; }
 .hero-lede b { color: var(--ink); font-weight: 700; }
-.hero-cta { display: flex; flex-wrap: wrap; gap: 12px; opacity: 0; animation: fade .9s .6s forwards; }
+.hero-cta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: clamp(28px, 3.4vw, 48px); opacity: 0; animation: fade .9s .45s forwards; }
 @keyframes fade { to { opacity: 1; } }
 
 .hero-stage { position: relative; aspect-ratio: 1; width: 100%; max-width: 560px; justify-self: end; opacity: 0; animation: fade 1.2s .2s forwards; }

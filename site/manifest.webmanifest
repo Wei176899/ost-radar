@@ -1,7 +1,7 @@
 {
   "name": "原聲雷達 OST Radar",
   "short_name": "原聲雷達",
-  "description": "動漫・遊戲原聲黑膠 / CD / 卡帶，台灣哪裡買得到。",
+  "description": "日本動畫與電玩原聲的黑膠、CD、卡帶，台灣各通路的預購與現貨。",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

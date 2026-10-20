@@ -91,7 +91,7 @@
     };
     if (!n.new) { // 第一次巡檢還沒有「新上架」基準，改顯示追蹤作品數
       const dd = $('#stats dd[data-k="new"]');
-      dd.previousElementSibling.textContent = "追蹤作品";
+      dd.previousElementSibling.textContent = "作品";
       n.new = (META.franchises || []).length;
     }
     $$("#stats dd").forEach((dd) => countUp(dd, n[dd.dataset.k]));
@@ -100,7 +100,7 @@
     const fill = pics.length < 3 ? jp.filter((i) => i.i && !MARKET.has(i.s) && i.st === "現貨").slice(0, 3 - pics.length) : [];
     $("#heroSleeves").innerHTML = [...pics, ...fill].map((i) => `<img class="ok" src="${esc(safeUrl(i.i))}" alt="" referrerpolicy="no-referrer" data-ph>`).join("");
     if (META.generated) $("#updated").textContent = `更新 ${META.generated.slice(5).replace("-", "/")}`;
-    $("#footMeta").textContent = META.generated ? `最後更新 ${META.generated}（台北時間）· ${fmtN(META.total)} 筆商品 · ${fmtN(META.news)} 則新聞` : "";
+    $("#footMeta").textContent = META.generated ? `更新於 ${META.generated.replace(/-/g, ".")} · ${fmtN(META.total)} 筆 · ${fmtN(META.news)} 則新聞` : "";
   }
 
   /* ------------------------------------------------------------ ticker */
@@ -140,8 +140,8 @@
     if (undated.length) defs.push({ k: "tba", label: `日期未定<small>${undated.length}</small>`, list: undated });
     if (market.length) defs.push({ k: "market", label: `拍賣代購<small>${market.length}</small>`, list: market.slice(0, 60) });
     const map = Object.fromEntries(defs.map((d) => [d.k, d.list]));
-    tabs($("#months"), defs, (k) => rail($("#upcomingRail"), map[k] || [], "目前沒有預購商品"));
-    if (!defs.length) rail($("#upcomingRail"), [], "目前沒有預購商品");
+    tabs($("#months"), defs, (k) => rail($("#upcomingRail"), map[k] || [], "目前沒有預購"));
+    if (!defs.length) rail($("#upcomingRail"), [], "目前沒有預購");
   }
 
   function renderPulse() {
@@ -157,7 +157,7 @@
     ].filter((d) => d.list.length || d.k === "all");
     const map = Object.fromEntries(defs.map((d) => [d.k, d.list]));
     tabs($("#pulseTabs"), defs.map((d) => ({ k: d.k, label: `${d.name}<small>${d.list.length}</small>` })),
-      (k) => rail($("#pulseRail"), map[k].slice(0, 80), "這期沒有新變動——第一次執行時會建立基準，下次更新起就會出現新上架、補貨與降價。"));
+      (k) => rail($("#pulseRail"), map[k].slice(0, 80), "目前沒有變動。"));
   }
 
   /* ------------------------------------------------------------ news */
@@ -169,7 +169,7 @@
       $("#newsList").innerHTML = news.slice(0, shown).map((n) => `
         <li><a href="${esc(safeUrl(n.url))}" ${ext}>
           <time datetime="${esc(n.date)}">${esc(n.date.replace(/-/g, "."))}</time>
-          <span><span class="nt">${esc(n.title).replace(HL, "<mark>$1</mark>")}</span><span class="ns">${esc(n.source)}${n.related ? ` · 另有 ${n.related} 則報導` : ""}${n.franchise ? " · " + esc(n.franchise) : ""}</span></span>
+          <span><span class="nt">${esc(n.title).replace(HL, "<mark>$1</mark>")}</span><span class="ns">${esc(n.source)}${n.related ? ` · +${n.related} 則相關` : ""}${n.franchise ? " · " + esc(n.franchise) : ""}</span></span>
           ${n.release && n.release >= TODAY ? `<span class="rel">${esc(n.release.slice(5).replace("-", "/"))} 發售</span>` : "<span></span>"}
         </a></li>`).join("") || `<li class="rail-empty">尚無新聞</li>`;
       let more = $("#newsMore");
@@ -179,7 +179,7 @@
           more.addEventListener("click", () => { shown += 12; draw(); });
           $("#newsList").after(more);
         }
-        more.textContent = `顯示更多（還有 ${news.length - shown} 則）`;
+        more.textContent = `更多 · ${news.length - shown}`;
       } else if (more) more.remove();
     };
     draw();
@@ -264,7 +264,7 @@
     filtered = ITEMS.filter((i) => match(i)).sort(SORTS[F.sort] || SORTS.smart);
     cursor = 0;
     $("#grid").innerHTML = "";
-    if (!filtered.length) $("#grid").innerHTML = `<div class="empty"><b>沒有符合的商品</b>試試放寬篩選，或關閉「只看日系」「隱藏缺貨」。</div>`;
+    if (!filtered.length) $("#grid").innerHTML = `<div class="empty"><b>沒有符合的商品</b></div>`;
     more();
     const pre = filtered.filter((i) => i.st === "預購").length, stock = filtered.filter((i) => i.st === "現貨").length;
     $("#resultLine").innerHTML = `<b>${fmtN(filtered.length)}</b> 筆 · 預購 ${fmtN(pre)} · 現貨 ${fmtN(stock)}`;
@@ -354,8 +354,8 @@
     lastFocus = document.activeElement;
     const st = ST_CLS[it.st] || "unk";
     const ver = it.v
-      ? `<span class="ver">✓ ${esc(META.generated?.slice(5, 10).replace("-", "/") || "")} 已複查${it.q != null && it.st !== "缺貨" ? `・庫存 ${it.q}` : ""}</span>`
-      : `<span class="ver no">尚未複查庫存，請以商品頁為準</span>`;
+      ? `<span class="ver">✓ ${esc(META.generated?.slice(5, 10).replace("-", "/") || "")} 複查${it.q != null && it.st !== "缺貨" ? `・庫存 ${it.q}` : ""}</span>`
+      : `<span class="ver no">未複查</span>`;
     const rows = [
       ["格式", `${esc(FMT_LONG[it.f] || it.f)}${it.d ? `（${esc(it.d)} 張）` : ""}`],
       ["類型", `${KIND[it.k] || ""}・${SUB[it.sb] || ""}`],
@@ -378,7 +378,7 @@
       <div class="sb-status"><span class="pill ${st}">${esc(stLabel(it))}</span>${ver}</div>
       <dl class="sb-dl">${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}</dl>
       <a class="btn primary sb-buy" href="${esc(safeUrl(it.u))}" ${ext}>前往 ${esc(srcName(it.s))} <span aria-hidden="true">↗</span></a>
-      ${alts.length ? `<div class="sb-alt"><h4>其他通路的相似商品</h4><p>依品名比對，可用來比價或找現貨。</p>
+      ${alts.length ? `<div class="sb-alt"><h4>其他通路</h4>
         ${alts.map((o) => `<a class="alt-row" href="#" data-i="${o._i}">${o.i ? img(o.i, "", "ok") : `<span class="ph"></span>`}
           <span><span class="at">${esc(o.t)}</span><span class="as">${esc(srcName(o.s))}</span></span>
           <span class="ap">${o.p ? "$" + fmtN(o.p) : "—"}<span>${esc(o.st)}</span></span></a>`).join("")}</div>` : ""}`;

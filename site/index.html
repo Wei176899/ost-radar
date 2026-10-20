@@ -5,12 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' https: data:; connect-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'; upgrade-insecure-requests">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<title>原聲雷達 OST Radar｜動漫・遊戲原聲實體盤在台灣哪裡買</title>
-<meta name="description" content="每 3 天自動更新：追蹤台灣 7 個通路的日本動畫、電玩原聲黑膠、CD、卡帶，預購、現貨、補貨與發售新聞一次看。">
+<title>原聲雷達 OST Radar</title>
+<meta name="description" content="日本動畫與電玩原聲的黑膠、CD、卡帶，台灣各通路的預購與現貨。">
 <meta name="theme-color" content="#0d0c0b" media="(prefers-color-scheme: dark)">
 <meta name="theme-color" content="#f3eee5" media="(prefers-color-scheme: light)">
 <meta property="og:title" content="原聲雷達 OST Radar">
-<meta property="og:description" content="動漫・遊戲原聲黑膠 / CD / 卡帶，台灣哪裡買得到。">
+<meta property="og:description" content="日本動畫與電玩原聲的黑膠、CD、卡帶，台灣各通路的預購與現貨。">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://wei176899.github.io/ost-radar/">
 <meta property="og:image" content="https://wei176899.github.io/ost-radar/assets/og.png">
@@ -21,8 +21,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;600&family=Noto+Sans+TC:wght@400;500;700;900&family=Noto+Serif+TC:wght@600;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=5">
-<script src="assets/theme.js?v=5"></script>
+<link rel="stylesheet" href="assets/style.css?v=6">
+<script src="assets/theme.js?v=6"></script>
 </head>
 <body>
 <a class="skip" href="#catalog">跳到商品列表</a>
@@ -51,16 +51,14 @@
   <!-- ============================== HERO -->
   <section class="hero" aria-labelledby="heroTitle">
     <div class="hero-copy">
-      <p class="eyebrow"><span class="dot live"></span>每 3 天自動巡檢 · 7 個台灣通路</p>
       <h1 id="heroTitle" class="hero-title">
         <span class="line"><span>動漫・遊戲</span></span>
         <span class="line"><span>原聲實體盤，</span></span>
         <span class="line"><span><em>台灣</em>哪裡買。</span></span>
       </h1>
-      <p class="hero-lede">黑膠、7 吋、CD、卡帶——從博客來、誠品到唱片行與拍賣，自動比對<b>預購</b>、<b>現貨</b>與<b>補貨</b>，並逐筆回到商品頁複查庫存。</p>
       <div class="hero-cta">
-        <a class="btn primary" href="#upcoming">看即將發售<span aria-hidden="true">↓</span></a>
-        <a class="btn ghost" href="#catalog">搜尋全部商品</a>
+        <a class="btn primary" href="#upcoming">即將發售<span aria-hidden="true">↓</span></a>
+        <a class="btn ghost" href="#catalog">全部商品</a>
       </div>
     </div>
     <div class="hero-stage" aria-hidden="true">
@@ -68,7 +66,7 @@
         <div class="platter">
           <div class="record" id="heroRecord">
             <div class="grooves"></div>
-            <div class="label"><span class="label-count" id="heroCount">—</span><span class="label-cap">筆預購中</span></div>
+            <div class="label"><span class="label-count" id="heroCount">—</span><span class="label-cap">預購</span></div>
           </div>
         </div>
         <div class="tonearm"><span></span></div>
@@ -76,10 +74,10 @@
       <div class="sleeve-stack" id="heroSleeves"></div>
     </div>
     <dl class="stats" id="stats">
-      <div><dt>預購中</dt><dd data-k="pre">—</dd></div>
+      <div><dt>預購</dt><dd data-k="pre">—</dd></div>
       <div><dt>現貨</dt><dd data-k="stock">—</dd></div>
-      <div><dt>本期新上架</dt><dd data-k="new">—</dd></div>
-      <div><dt>已複查庫存</dt><dd data-k="verified">—</dd></div>
+      <div><dt>新上架</dt><dd data-k="new">—</dd></div>
+      <div><dt>已複查</dt><dd data-k="verified">—</dd></div>
     </dl>
   </section>
 
@@ -90,7 +88,6 @@
     <header class="section-head">
       <p class="kicker">01 — Upcoming</p>
       <h2 id="upTitle">即將發售</h2>
-      <p class="section-sub">有明確發售／出貨日的預購，依月份排列。</p>
     </header>
     <div class="months" id="months" role="tablist" aria-label="月份"></div>
     <div class="rail" id="upcomingRail"></div>
@@ -101,7 +98,6 @@
     <header class="section-head">
       <p class="kicker">02 — Pulse</p>
       <h2 id="pulseTitle">本期動態</h2>
-      <p class="section-sub">近 10 天新上架、補貨、到貨與降價。</p>
     </header>
     <div class="pulse-tabs" id="pulseTabs" role="tablist" aria-label="動態類型"></div>
     <div class="rail" id="pulseRail"></div>
@@ -112,12 +108,11 @@
     <header class="section-head">
       <p class="kicker">03 — Release Radar</p>
       <h2 id="newsTitle">發售新聞</h2>
-      <p class="section-sub">日本、台灣、海外的發售消息，以及遊戲／動畫唱片廠牌的最新預購。</p>
     </header>
     <div class="news-grid">
       <div class="news-main"><ol class="news-list" id="newsList"></ol></div>
       <aside class="labels" aria-labelledby="labelsTitle">
-        <h3 id="labelsTitle">海外廠牌新品</h3>
+        <h3 id="labelsTitle">海外廠牌</h3>
         <div class="label-grid" id="labelGrid"></div>
       </aside>
     </div>
@@ -159,9 +154,9 @@
           </label>
         </fieldset>
         <fieldset class="toggles">
-          <label class="switch"><input type="checkbox" id="onlyJp" checked><span></span>只看日系作品</label>
+          <label class="switch"><input type="checkbox" id="onlyJp" checked><span></span>只看日系</label>
           <label class="switch"><input type="checkbox" id="hideOut" checked><span></span>隱藏缺貨</label>
-          <label class="switch"><input type="checkbox" id="onlyVerified"><span></span>只看已複查庫存</label>
+          <label class="switch"><input type="checkbox" id="onlyVerified"><span></span>只看已複查</label>
         </fieldset>
         <div class="fp-foot">
           <button class="btn ghost" id="resetBtn" type="button">清除全部</button>
@@ -179,8 +174,7 @@
   <section class="section stores" id="stores" aria-labelledby="storeTitle">
     <header class="section-head">
       <p class="kicker">05 — Sources</p>
-      <h2 id="storeTitle">追蹤通路</h2>
-      <p class="section-sub">官方電商每筆都回到庫存 API 或商品頁複查；拍賣為個人／店家賣場，請留意正版與評價。</p>
+      <h2 id="storeTitle">通路</h2>
     </header>
     <ul class="store-list" id="storeList"></ul>
   </section>
@@ -189,7 +183,7 @@
 <footer class="foot">
   <div class="foot-big" aria-hidden="true">OST RADAR</div>
   <div class="foot-row">
-    <p>資料由程式自動擷取各通路公開頁面，價格與庫存以商品頁為準。</p>
+    <p>價格與庫存以各通路頁面為準。</p>
     <p><a href="data/items.csv" download>下載 CSV</a> · <span id="footMeta"></span></p>
   </div>
 </footer>
@@ -204,6 +198,6 @@
 </div>
 
 <noscript><p class="noscript">需要啟用 JavaScript 才能瀏覽商品資料。</p></noscript>
-<script src="assets/app.js?v=5" defer></script>
+<script src="assets/app.js?v=6" defer></script>
 </body>
 </html>
