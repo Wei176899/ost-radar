@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+*.log
+.claude/
+.venv/
+venv/
+
+# 敏感資訊（本專案不需要任何金鑰；以防萬一）
+.env
+.env.*
+*.pem
+*.key
+*.p12
+secrets*.json
+credentials*.json

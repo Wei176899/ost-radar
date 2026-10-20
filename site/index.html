@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="zh-Hant" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' https: data:; connect-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'; upgrade-insecure-requests">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<title>原聲雷達 OST Radar｜動漫・遊戲原聲實體盤在台灣哪裡買</title>
+<meta name="description" content="每 3 天自動更新：追蹤台灣 7 個通路的日本動畫、電玩原聲黑膠、CD、卡帶，預購、現貨、補貨與發售新聞一次看。">
+<meta name="theme-color" content="#0d0c0b" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f3eee5" media="(prefers-color-scheme: light)">
+<meta property="og:title" content="原聲雷達 OST Radar">
+<meta property="og:description" content="動漫・遊戲原聲黑膠 / CD / 卡帶，台灣哪裡買得到。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://wei176899.github.io/ost-radar/">
+<meta property="og:image" content="https://wei176899.github.io/ost-radar/assets/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="assets/icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;600&family=Noto+Sans+TC:wght@400;500;700;900&family=Noto+Serif+TC:wght@600;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css?v=5">
+<script src="assets/theme.js?v=5"></script>
+</head>
+<body>
+<a class="skip" href="#catalog">跳到商品列表</a>
+
+<header class="nav" id="top">
+  <a class="brand" href="#top" aria-label="原聲雷達 首頁">
+    <span class="brand-disc" aria-hidden="true"></span>
+    <span class="brand-name">原聲雷達<small>OST&nbsp;RADAR</small></span>
+  </a>
+  <nav class="nav-links" aria-label="主要">
+    <a href="#upcoming">即將發售</a>
+    <a href="#pulse">本期動態</a>
+    <a href="#news">發售新聞</a>
+    <a href="#catalog">全部商品</a>
+    <a href="#stores">通路</a>
+  </nav>
+  <div class="nav-tools">
+    <span class="updated" id="updated" title="資料更新時間">—</span>
+    <button class="icon-btn" id="themeBtn" type="button" aria-label="切換深淺色">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9z"/></svg>
+    </button>
+  </div>
+</header>
+
+<main>
+  <!-- ============================== HERO -->
+  <section class="hero" aria-labelledby="heroTitle">
+    <div class="hero-copy">
+      <p class="eyebrow"><span class="dot live"></span>每 3 天自動巡檢 · 7 個台灣通路</p>
+      <h1 id="heroTitle" class="hero-title">
+        <span class="line"><span>動漫・遊戲</span></span>
+        <span class="line"><span>原聲實體盤，</span></span>
+        <span class="line"><span><em>台灣</em>哪裡買。</span></span>
+      </h1>
+      <p class="hero-lede">黑膠、7 吋、CD、卡帶——從博客來、誠品到唱片行與拍賣，自動比對<b>預購</b>、<b>現貨</b>與<b>補貨</b>，並逐筆回到商品頁複查庫存。</p>
+      <div class="hero-cta">
+        <a class="btn primary" href="#upcoming">看即將發售<span aria-hidden="true">↓</span></a>
+        <a class="btn ghost" href="#catalog">搜尋全部商品</a>
+      </div>
+    </div>
+    <div class="hero-stage" aria-hidden="true">
+      <div class="turntable">
+        <div class="platter">
+          <div class="record" id="heroRecord">
+            <div class="grooves"></div>
+            <div class="label"><span class="label-count" id="heroCount">—</span><span class="label-cap">筆預購中</span></div>
+          </div>
+        </div>
+        <div class="tonearm"><span></span></div>
+      </div>
+      <div class="sleeve-stack" id="heroSleeves"></div>
+    </div>
+    <dl class="stats" id="stats">
+      <div><dt>預購中</dt><dd data-k="pre">—</dd></div>
+      <div><dt>現貨</dt><dd data-k="stock">—</dd></div>
+      <div><dt>本期新上架</dt><dd data-k="new">—</dd></div>
+      <div><dt>已複查庫存</dt><dd data-k="verified">—</dd></div>
+    </dl>
+  </section>
+
+  <div class="ticker" aria-label="最新發售新聞跑馬燈"><div class="ticker-track" id="ticker"></div></div>
+
+  <!-- ============================== UPCOMING -->
+  <section class="section" id="upcoming" aria-labelledby="upTitle">
+    <header class="section-head">
+      <p class="kicker">01 — Upcoming</p>
+      <h2 id="upTitle">即將發售</h2>
+      <p class="section-sub">有明確發售／出貨日的預購，依月份排列。</p>
+    </header>
+    <div class="months" id="months" role="tablist" aria-label="月份"></div>
+    <div class="rail" id="upcomingRail"></div>
+  </section>
+
+  <!-- ============================== PULSE -->
+  <section class="section" id="pulse" aria-labelledby="pulseTitle">
+    <header class="section-head">
+      <p class="kicker">02 — Pulse</p>
+      <h2 id="pulseTitle">本期動態</h2>
+      <p class="section-sub">近 10 天新上架、補貨、到貨與降價。</p>
+    </header>
+    <div class="pulse-tabs" id="pulseTabs" role="tablist" aria-label="動態類型"></div>
+    <div class="rail" id="pulseRail"></div>
+  </section>
+
+  <!-- ============================== NEWS -->
+  <section class="section news" id="news" aria-labelledby="newsTitle">
+    <header class="section-head">
+      <p class="kicker">03 — Release Radar</p>
+      <h2 id="newsTitle">發售新聞</h2>
+      <p class="section-sub">日本、台灣、海外的發售消息，以及遊戲／動畫唱片廠牌的最新預購。</p>
+    </header>
+    <div class="news-grid">
+      <div class="news-main"><ol class="news-list" id="newsList"></ol></div>
+      <aside class="labels" aria-labelledby="labelsTitle">
+        <h3 id="labelsTitle">海外廠牌新品</h3>
+        <div class="label-grid" id="labelGrid"></div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ============================== CATALOG -->
+  <section class="section catalog" id="catalog" aria-labelledby="catTitle">
+    <header class="section-head">
+      <p class="kicker">04 — Catalog</p>
+      <h2 id="catTitle">全部商品</h2>
+    </header>
+
+    <div class="filters" id="filters">
+      <div class="search">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input type="search" id="q" placeholder="作品、曲名、作曲家…" aria-label="搜尋" autocomplete="off">
+      </div>
+      <div class="seg" id="fmtSeg" role="group" aria-label="格式"></div>
+      <button class="btn ghost filter-open" id="filterOpen" type="button" aria-expanded="false" aria-controls="filterPanel">
+        篩選<span class="badge" id="filterBadge" hidden></span>
+      </button>
+      <div class="fp-backdrop" id="fpBackdrop" hidden></div>
+      <div class="filter-panel" id="filterPanel" role="dialog" aria-label="篩選條件">
+        <div class="fp-head"><b>篩選</b><button class="icon-btn" id="filterClose" type="button" aria-label="關閉篩選">✕</button></div>
+        <fieldset><legend>狀態</legend><div class="chips" id="statusChips"></div></fieldset>
+        <fieldset><legend>類型</legend><div class="chips" id="kindChips"></div></fieldset>
+        <fieldset><legend>通路</legend><div class="chips" id="srcChips"></div></fieldset>
+        <fieldset><legend>版本</legend><div class="chips" id="tagChips"></div></fieldset>
+        <fieldset class="row">
+          <label class="field"><span>作品／作曲家</span><select id="frSel"><option value="">全部</option></select></label>
+          <label class="field"><span>排序</span>
+            <select id="sortSel">
+              <option value="smart">推薦</option>
+              <option value="release">發售日 新→舊</option>
+              <option value="first">最近上架</option>
+              <option value="priceAsc">價格 低→高</option>
+              <option value="priceDesc">價格 高→低</option>
+            </select>
+          </label>
+        </fieldset>
+        <fieldset class="toggles">
+          <label class="switch"><input type="checkbox" id="onlyJp" checked><span></span>只看日系作品</label>
+          <label class="switch"><input type="checkbox" id="hideOut" checked><span></span>隱藏缺貨</label>
+          <label class="switch"><input type="checkbox" id="onlyVerified"><span></span>只看已複查庫存</label>
+        </fieldset>
+        <div class="fp-foot">
+          <button class="btn ghost" id="resetBtn" type="button">清除全部</button>
+          <button class="btn primary" id="applyBtn" type="button">查看 <span id="applyCount">0</span> 筆</button>
+        </div>
+      </div>
+    </div>
+
+    <p class="result-line" id="resultLine" aria-live="polite"></p>
+    <div class="grid" id="grid"></div>
+    <div class="sentinel" id="sentinel" aria-hidden="true"></div>
+  </section>
+
+  <!-- ============================== STORES -->
+  <section class="section stores" id="stores" aria-labelledby="storeTitle">
+    <header class="section-head">
+      <p class="kicker">05 — Sources</p>
+      <h2 id="storeTitle">追蹤通路</h2>
+      <p class="section-sub">官方電商每筆都回到庫存 API 或商品頁複查；拍賣為個人／店家賣場，請留意正版與評價。</p>
+    </header>
+    <ul class="store-list" id="storeList"></ul>
+  </section>
+</main>
+
+<footer class="foot">
+  <div class="foot-big" aria-hidden="true">OST RADAR</div>
+  <div class="foot-row">
+    <p>資料由程式自動擷取各通路公開頁面，價格與庫存以商品頁為準。</p>
+    <p><a href="data/items.csv" download>下載 CSV</a> · <span id="footMeta"></span></p>
+  </div>
+</footer>
+
+<!-- 商品詳細 -->
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" hidden>
+  <div class="sheet-backdrop" data-close></div>
+  <article class="sheet-card">
+    <button class="icon-btn sheet-close" type="button" data-close aria-label="關閉">✕</button>
+    <div class="sheet-body" id="sheetBody"></div>
+  </article>
+</div>
+
+<noscript><p class="noscript">需要啟用 JavaScript 才能瀏覽商品資料。</p></noscript>
+<script src="assets/app.js?v=5" defer></script>
+</body>
+</html>
