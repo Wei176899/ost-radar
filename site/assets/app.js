@@ -419,7 +419,7 @@
   function renderStores() {
     $("#storeList").innerHTML = (META.sources || []).map((s) => `
       <li><a href="${esc(safeUrl(s.home))}" ${ext}>
-        <span class="sn">${esc(s.name)}${s.errors ? ` <span class="se">${s.errors} 次讀取失敗</span>` : ""}</span>
+        <span class="sn">${esc(s.name)}${s.down ? ` <span class="se">本次未更新</span>` : s.errors ? ` <span class="se">${s.errors} 次讀取失敗</span>` : ""}</span>
         <span class="st">${esc(s.type)}</span>
         <span class="sc">${fmtN(s.count)}</span>
       </a></li>`).join("");

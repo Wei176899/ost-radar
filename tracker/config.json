@@ -1,113 +1,748 @@
 {
   "_說明": "franchises：想追的作品/作曲家。aliases 第一個會拿去搜尋，其餘用來比對品名。kind: anime / game / studio / composer",
   "generic_queries": {
-    "vinyl": ["黑膠 動畫 原聲帶", "黑膠 動畫 原聲", "黑膠 遊戲 原聲帶", "黑膠 電玩 原聲", "黑膠 動漫", "黑膠 主題曲 動畫", "LP 動畫原聲", "黑膠 日本動畫", "黑膠 預購 動畫", "黑膠 預購 遊戲", "サウンドトラック LP", "黑膠 Soundtrack Game", "7吋 動畫"],
-    "cd": ["動畫 原聲帶 CD", "遊戲 原聲帶 CD", "電玩 原聲 CD", "動畫 主題曲 CD", "日本動畫 原聲帶", "サウンドトラック CD", "劇場版 原聲帶", "Original Soundtrack 日本進口"],
-    "cassette": ["卡帶 動畫", "卡帶 原聲帶", "卡帶 遊戲", "Cassette Soundtrack", "カセット サウンドトラック"]
+    "vinyl": [
+      "黑膠 動畫 原聲帶",
+      "黑膠 動畫 原聲",
+      "黑膠 遊戲 原聲帶",
+      "黑膠 電玩 原聲",
+      "黑膠 動漫",
+      "黑膠 主題曲 動畫",
+      "LP 動畫原聲",
+      "黑膠 日本動畫",
+      "黑膠 預購 動畫",
+      "黑膠 預購 遊戲",
+      "サウンドトラック LP",
+      "黑膠 Soundtrack Game",
+      "7吋 動畫"
+    ],
+    "cd": [
+      "動畫 原聲帶 CD",
+      "遊戲 原聲帶 CD",
+      "電玩 原聲 CD",
+      "動畫 主題曲 CD",
+      "日本動畫 原聲帶",
+      "サウンドトラック CD",
+      "劇場版 原聲帶",
+      "Original Soundtrack 日本進口"
+    ],
+    "cassette": [
+      "卡帶 動畫",
+      "卡帶 原聲帶",
+      "卡帶 遊戲",
+      "Cassette Soundtrack",
+      "カセット サウンドトラック"
+    ]
   },
-  "franchise_query_suffix": {"vinyl": "黑膠", "cd": "原聲帶 CD", "cassette": "卡帶"},
+  "franchise_query_suffix": {
+    "vinyl": "黑膠",
+    "cd": "原聲帶 CD",
+    "cassette": "卡帶"
+  },
   "franchises": {
-    "吉卜力": {"kind": "studio", "aliases": ["吉卜力", "Ghibli", "宮崎駿", "龍貓", "神隱少女", "魔女宅急便", "天空之城", "霍爾的移動城堡", "風之谷", "魔法公主", "崖上的波妞", "紅豬", "螢火蟲之墓", "蒼鷺與少年", "となりのトトロ", "千と千尋", "もののけ姫", "ハウルの動く城", "風の谷", "紅の豚", "火垂るの墓", "耳をすませば", "崖の上のポニョ", "君たちはどう生きるか"]},
-    "久石讓": {"kind": "composer", "aliases": ["久石讓", "久石譲", "Joe Hisaishi"]},
-    "新世紀福音戰士": {"kind": "anime", "aliases": ["新世紀福音戰士", "EVANGELION", "エヴァンゲリオン", "福音戰士"]},
-    "星際牛仔": {"kind": "anime", "aliases": ["星際牛仔", "COWBOY BEBOP", "カウボーイビバップ"]},
-    "攻殼機動隊": {"kind": "anime", "aliases": ["攻殼機動隊", "攻殻機動隊", "Ghost in the Shell"]},
-    "AKIRA": {"kind": "anime", "aliases": ["阿基拉", "AKIRA 大友"]},
-    "鋼彈": {"kind": "anime", "aliases": ["鋼彈", "GUNDAM", "ガンダム"]},
-    "超時空要塞": {"kind": "anime", "aliases": ["超時空要塞", "MACROSS", "マクロス"]},
-    "鬼滅之刃": {"kind": "anime", "aliases": ["鬼滅之刃", "鬼滅の刃", "Demon Slayer"]},
-    "咒術迴戰": {"kind": "anime", "aliases": ["咒術迴戰", "呪術廻戦", "Jujutsu Kaisen"]},
-    "進擊的巨人": {"kind": "anime", "aliases": ["進擊的巨人", "進撃の巨人", "Attack on Titan"]},
-    "鏈鋸人": {"kind": "anime", "aliases": ["鏈鋸人", "チェンソーマン", "Chainsaw Man"]},
-    "葬送的芙莉蓮": {"kind": "anime", "aliases": ["葬送的芙莉蓮", "葬送のフリーレン", "Frieren"]},
-    "孤獨搖滾": {"kind": "anime", "aliases": ["孤獨搖滾", "ぼっち・ざ・ろっく", "結束バンド", "Bocchi"]},
-    "少女樂團吶喊吧": {"kind": "anime", "aliases": ["少女樂團吶喊吧", "Girls Band Cry", "トゲナシトゲアリ", "TOGENASHI TOGEARI", "棘ナシ", "棘アリ"]},
-    "BanG Dream!": {"kind": "anime", "aliases": ["MyGO", "BanG Dream", "Ave Mujica"]},
-    "間諜家家酒": {"kind": "anime", "aliases": ["間諜家家酒", "SPY×FAMILY", "SPY X FAMILY"]},
-    "新海誠": {"kind": "studio", "aliases": ["新海誠", "你的名字", "天氣之子", "鈴芽之旅", "君の名は", "天気の子", "すずめの戸締まり", "言の葉の庭"]},
-    "細田守": {"kind": "studio", "aliases": ["細田守", "夏日大作戰", "跳躍吧！時空少女", "龍與雀斑公主"]},
-    "航海王": {"kind": "anime", "aliases": ["航海王", "海賊王", "ONE PIECE", "ワンピース"]},
-    "火影忍者": {"kind": "anime", "aliases": ["火影忍者", "NARUTO"]},
-    "七龍珠": {"kind": "anime", "aliases": ["七龍珠", "Dragon Ball", "ドラゴンボール"]},
-    "灌籃高手": {"kind": "anime", "aliases": ["灌籃高手", "SLAM DUNK", "スラムダンク"]},
-    "JOJO": {"kind": "anime", "aliases": ["JOJO", "ジョジョ"]},
-    "名偵探柯南": {"kind": "anime", "aliases": ["名偵探柯南", "名探偵コナン", "Detective Conan"]},
-    "美少女戰士": {"kind": "anime", "aliases": ["美少女戰士", "セーラームーン", "Sailor Moon"]},
-    "魯邦三世": {"kind": "anime", "aliases": ["魯邦三世", "ルパン三世", "LUPIN THE THIRD", "Lupin III"]},
-    "城市獵人": {"kind": "anime", "aliases": ["城市獵人", "シティーハンター", "City Hunter"]},
-    "天元突破": {"kind": "anime", "aliases": ["天元突破", "グレンラガン"]},
-    "初音未來": {"kind": "anime", "aliases": ["初音未來", "初音ミク", "Hatsune Miku"]},
-    "頭文字D": {"kind": "anime", "aliases": ["頭文字D", "Initial D"]},
-    "迷宮飯": {"kind": "anime", "aliases": ["迷宮飯", "ダンジョン飯"]},
-    "最終幻想": {"kind": "game", "aliases": ["最終幻想", "太空戰士", "FINAL FANTASY", "ファイナルファンタジー"]},
-    "勇者鬥惡龍": {"kind": "game", "aliases": ["勇者鬥惡龍", "DRAGON QUEST", "ドラゴンクエスト"]},
-    "薩爾達傳說": {"kind": "game", "aliases": ["薩爾達", "ZELDA", "ゼルダ"]},
-    "瑪利歐": {"kind": "game", "aliases": ["瑪利歐", "瑪莉歐", "馬力歐", "SUPER MARIO", "スーパーマリオ", "マリオ"]},
-    "寶可夢": {"kind": "game", "aliases": ["寶可夢", "神奇寶貝", "POKEMON", "Pokémon", "ポケモン"]},
-    "星之卡比": {"kind": "game", "aliases": ["星之卡比", "KIRBY", "カービィ"]},
-    "動物森友會": {"kind": "game", "aliases": ["動物森友會", "どうぶつの森", "Animal Crossing"]},
-    "斯普拉遁": {"kind": "game", "aliases": ["斯普拉遁", "SPLATOON", "スプラトゥーン"]},
-    "女神異聞錄": {"kind": "game", "aliases": ["女神異聞錄", "PERSONA", "ペルソナ"]},
-    "尼爾": {"kind": "game", "aliases": ["尼爾：", "NieR", "ニーア"]},
-    "王國之心": {"kind": "game", "aliases": ["王國之心", "KINGDOM HEARTS", "キングダムハーツ"]},
-    "惡魔城": {"kind": "game", "aliases": ["惡魔城", "Castlevania", "悪魔城"]},
-    "洛克人": {"kind": "game", "aliases": ["洛克人", "ROCKMAN", "MEGA MAN", "ロックマン"]},
-    "快打旋風": {"kind": "game", "aliases": ["快打旋風", "STREET FIGHTER", "ストリートファイター"]},
-    "音速小子": {"kind": "game", "aliases": ["音速小子", "SONIC THE HEDGEHOG", "ソニック"]},
-    "魔物獵人": {"kind": "game", "aliases": ["魔物獵人", "MONSTER HUNTER", "モンスターハンター"]},
-    "惡靈古堡": {"kind": "game", "aliases": ["惡靈古堡", "BIOHAZARD", "Resident Evil", "バイオハザード"]},
-    "潛龍諜影": {"kind": "game", "aliases": ["潛龍諜影", "METAL GEAR", "メタルギア"]},
-    "沉默之丘": {"kind": "game", "aliases": ["沉默之丘", "SILENT HILL", "サイレントヒル"]},
-    "聖劍傳說": {"kind": "game", "aliases": ["聖劍傳說", "聖剣伝説", "Secret of Mana"]},
-    "時空之鑰": {"kind": "game", "aliases": ["時空之鑰", "超時空之鑰", "CHRONO TRIGGER", "CHRONO CROSS", "クロノ"]},
-    "異度神劍": {"kind": "game", "aliases": ["異度神劍", "XENOBLADE", "ゼノブレイド"]},
-    "軌跡系列": {"kind": "game", "aliases": ["空之軌跡", "閃之軌跡", "黎之軌跡", "英雄傳說", "英雄伝説", "Falcom"]},
-    "人中之龍": {"kind": "game", "aliases": ["人中之龍", "人如其龍", "龍が如く", "Yakuza"]},
-    "艾爾登法環": {"kind": "game", "aliases": ["法環", "艾爾登", "ELDEN RING", "黑暗靈魂", "DARK SOULS", "惡魔靈魂", "Demon's Souls", "Bloodborne"]},
-    "塊魂": {"kind": "game", "aliases": ["塊魂", "Katamari"]},
-    "太鼓之達人": {"kind": "game", "aliases": ["太鼓之達人", "太鼓の達人"]},
-    "對馬戰鬼": {"kind": "game", "aliases": ["對馬戰鬼", "Ghost of Tsushima"]},
-    "鐵拳": {"kind": "game", "aliases": ["鐵拳", "TEKKEN"]},
-    "逆轉裁判": {"kind": "game", "aliases": ["逆轉裁判", "逆転裁判", "Ace Attorney"]},
-    "菅野洋子": {"kind": "composer", "aliases": ["菅野よう子", "菅野洋子", "Yoko Kanno"]},
-    "梶浦由記": {"kind": "composer", "aliases": ["梶浦由記", "Yuki Kajiura", "Kalafina"]},
-    "植松伸夫": {"kind": "composer", "aliases": ["植松伸夫", "Nobuo Uematsu"]},
-    "下村陽子": {"kind": "composer", "aliases": ["下村陽子", "Yoko Shimomura"]},
-    "光田康典": {"kind": "composer", "aliases": ["光田康典", "Yasunori Mitsuda"]},
-    "近藤浩治": {"kind": "composer", "aliases": ["近藤浩治", "Koji Kondo"]},
-    "岡部啓一": {"kind": "composer", "aliases": ["岡部啓一", "Keiichi Okabe", "MONACA"]},
-    "目黑將司": {"kind": "composer", "aliases": ["目黒将司", "目黑將司", "Shoji Meguro"]},
-    "澤野弘之": {"kind": "composer", "aliases": ["澤野弘之", "Hiroyuki Sawano"]},
-    "坂本龍一": {"kind": "composer", "aliases": ["坂本龍一", "Ryuichi Sakamoto"]}
+    "吉卜力": {
+      "kind": "studio",
+      "aliases": [
+        "吉卜力",
+        "Ghibli",
+        "宮崎駿",
+        "龍貓",
+        "神隱少女",
+        "魔女宅急便",
+        "天空之城",
+        "霍爾的移動城堡",
+        "風之谷",
+        "魔法公主",
+        "崖上的波妞",
+        "紅豬",
+        "螢火蟲之墓",
+        "蒼鷺與少年",
+        "となりのトトロ",
+        "千と千尋",
+        "もののけ姫",
+        "ハウルの動く城",
+        "風の谷",
+        "紅の豚",
+        "火垂るの墓",
+        "耳をすませば",
+        "崖の上のポニョ",
+        "君たちはどう生きるか"
+      ]
+    },
+    "久石讓": {
+      "kind": "composer",
+      "aliases": [
+        "久石讓",
+        "久石譲",
+        "Joe Hisaishi"
+      ]
+    },
+    "新世紀福音戰士": {
+      "kind": "anime",
+      "aliases": [
+        "新世紀福音戰士",
+        "EVANGELION",
+        "エヴァンゲリオン",
+        "福音戰士"
+      ]
+    },
+    "星際牛仔": {
+      "kind": "anime",
+      "aliases": [
+        "星際牛仔",
+        "COWBOY BEBOP",
+        "カウボーイビバップ"
+      ]
+    },
+    "攻殼機動隊": {
+      "kind": "anime",
+      "aliases": [
+        "攻殼機動隊",
+        "攻殻機動隊",
+        "Ghost in the Shell"
+      ]
+    },
+    "AKIRA": {
+      "kind": "anime",
+      "aliases": [
+        "阿基拉",
+        "AKIRA 大友"
+      ]
+    },
+    "鋼彈": {
+      "kind": "anime",
+      "aliases": [
+        "鋼彈",
+        "GUNDAM",
+        "ガンダム"
+      ]
+    },
+    "超時空要塞": {
+      "kind": "anime",
+      "aliases": [
+        "超時空要塞",
+        "MACROSS",
+        "マクロス"
+      ]
+    },
+    "鬼滅之刃": {
+      "kind": "anime",
+      "aliases": [
+        "鬼滅之刃",
+        "鬼滅の刃",
+        "Demon Slayer"
+      ]
+    },
+    "咒術迴戰": {
+      "kind": "anime",
+      "aliases": [
+        "咒術迴戰",
+        "呪術廻戦",
+        "Jujutsu Kaisen"
+      ]
+    },
+    "進擊的巨人": {
+      "kind": "anime",
+      "aliases": [
+        "進擊的巨人",
+        "進撃の巨人",
+        "Attack on Titan"
+      ]
+    },
+    "鏈鋸人": {
+      "kind": "anime",
+      "aliases": [
+        "鏈鋸人",
+        "チェンソーマン",
+        "Chainsaw Man"
+      ]
+    },
+    "葬送的芙莉蓮": {
+      "kind": "anime",
+      "aliases": [
+        "葬送的芙莉蓮",
+        "葬送のフリーレン",
+        "Frieren"
+      ]
+    },
+    "孤獨搖滾": {
+      "kind": "anime",
+      "aliases": [
+        "孤獨搖滾",
+        "ぼっち・ざ・ろっく",
+        "結束バンド",
+        "Bocchi"
+      ]
+    },
+    "少女樂團吶喊吧": {
+      "kind": "anime",
+      "aliases": [
+        "少女樂團吶喊吧",
+        "Girls Band Cry",
+        "トゲナシトゲアリ",
+        "TOGENASHI TOGEARI",
+        "棘ナシ",
+        "棘アリ"
+      ]
+    },
+    "BanG Dream!": {
+      "kind": "anime",
+      "aliases": [
+        "MyGO",
+        "BanG Dream",
+        "Ave Mujica"
+      ]
+    },
+    "間諜家家酒": {
+      "kind": "anime",
+      "aliases": [
+        "間諜家家酒",
+        "SPY×FAMILY",
+        "SPY X FAMILY"
+      ]
+    },
+    "新海誠": {
+      "kind": "studio",
+      "aliases": [
+        "新海誠",
+        "你的名字",
+        "天氣之子",
+        "鈴芽之旅",
+        "君の名は",
+        "天気の子",
+        "すずめの戸締まり",
+        "言の葉の庭"
+      ]
+    },
+    "細田守": {
+      "kind": "studio",
+      "aliases": [
+        "細田守",
+        "夏日大作戰",
+        "跳躍吧！時空少女",
+        "龍與雀斑公主"
+      ]
+    },
+    "航海王": {
+      "kind": "anime",
+      "aliases": [
+        "航海王",
+        "海賊王",
+        "ONE PIECE",
+        "ワンピース"
+      ]
+    },
+    "火影忍者": {
+      "kind": "anime",
+      "aliases": [
+        "火影忍者",
+        "NARUTO"
+      ]
+    },
+    "七龍珠": {
+      "kind": "anime",
+      "aliases": [
+        "七龍珠",
+        "Dragon Ball",
+        "ドラゴンボール"
+      ]
+    },
+    "灌籃高手": {
+      "kind": "anime",
+      "aliases": [
+        "灌籃高手",
+        "SLAM DUNK",
+        "スラムダンク"
+      ]
+    },
+    "JOJO": {
+      "kind": "anime",
+      "aliases": [
+        "JOJO",
+        "ジョジョ"
+      ]
+    },
+    "名偵探柯南": {
+      "kind": "anime",
+      "aliases": [
+        "名偵探柯南",
+        "名探偵コナン",
+        "Detective Conan"
+      ]
+    },
+    "美少女戰士": {
+      "kind": "anime",
+      "aliases": [
+        "美少女戰士",
+        "セーラームーン",
+        "Sailor Moon"
+      ]
+    },
+    "魯邦三世": {
+      "kind": "anime",
+      "aliases": [
+        "魯邦三世",
+        "ルパン三世",
+        "LUPIN THE THIRD",
+        "Lupin III"
+      ]
+    },
+    "城市獵人": {
+      "kind": "anime",
+      "aliases": [
+        "城市獵人",
+        "シティーハンター",
+        "City Hunter"
+      ]
+    },
+    "天元突破": {
+      "kind": "anime",
+      "aliases": [
+        "天元突破",
+        "グレンラガン"
+      ]
+    },
+    "初音未來": {
+      "kind": "anime",
+      "aliases": [
+        "初音未來",
+        "初音ミク",
+        "Hatsune Miku"
+      ]
+    },
+    "頭文字D": {
+      "kind": "anime",
+      "aliases": [
+        "頭文字D",
+        "Initial D"
+      ]
+    },
+    "迷宮飯": {
+      "kind": "anime",
+      "aliases": [
+        "迷宮飯",
+        "ダンジョン飯"
+      ]
+    },
+    "最終幻想": {
+      "kind": "game",
+      "aliases": [
+        "最終幻想",
+        "太空戰士",
+        "FINAL FANTASY",
+        "ファイナルファンタジー"
+      ]
+    },
+    "勇者鬥惡龍": {
+      "kind": "game",
+      "aliases": [
+        "勇者鬥惡龍",
+        "DRAGON QUEST",
+        "ドラゴンクエスト"
+      ]
+    },
+    "薩爾達傳說": {
+      "kind": "game",
+      "aliases": [
+        "薩爾達",
+        "ZELDA",
+        "ゼルダ"
+      ]
+    },
+    "瑪利歐": {
+      "kind": "game",
+      "aliases": [
+        "瑪利歐",
+        "瑪莉歐",
+        "馬力歐",
+        "SUPER MARIO",
+        "スーパーマリオ",
+        "マリオ"
+      ]
+    },
+    "寶可夢": {
+      "kind": "game",
+      "aliases": [
+        "寶可夢",
+        "神奇寶貝",
+        "POKEMON",
+        "Pokémon",
+        "ポケモン"
+      ]
+    },
+    "星之卡比": {
+      "kind": "game",
+      "aliases": [
+        "星之卡比",
+        "KIRBY",
+        "カービィ"
+      ]
+    },
+    "動物森友會": {
+      "kind": "game",
+      "aliases": [
+        "動物森友會",
+        "どうぶつの森",
+        "Animal Crossing"
+      ]
+    },
+    "斯普拉遁": {
+      "kind": "game",
+      "aliases": [
+        "斯普拉遁",
+        "SPLATOON",
+        "スプラトゥーン"
+      ]
+    },
+    "女神異聞錄": {
+      "kind": "game",
+      "aliases": [
+        "女神異聞錄",
+        "PERSONA",
+        "ペルソナ"
+      ]
+    },
+    "尼爾": {
+      "kind": "game",
+      "aliases": [
+        "尼爾：",
+        "NieR",
+        "ニーア"
+      ]
+    },
+    "王國之心": {
+      "kind": "game",
+      "aliases": [
+        "王國之心",
+        "KINGDOM HEARTS",
+        "キングダムハーツ"
+      ]
+    },
+    "惡魔城": {
+      "kind": "game",
+      "aliases": [
+        "惡魔城",
+        "Castlevania",
+        "悪魔城"
+      ]
+    },
+    "洛克人": {
+      "kind": "game",
+      "aliases": [
+        "洛克人",
+        "ROCKMAN",
+        "MEGA MAN",
+        "ロックマン"
+      ]
+    },
+    "快打旋風": {
+      "kind": "game",
+      "aliases": [
+        "快打旋風",
+        "STREET FIGHTER",
+        "ストリートファイター"
+      ]
+    },
+    "音速小子": {
+      "kind": "game",
+      "aliases": [
+        "音速小子",
+        "SONIC THE HEDGEHOG",
+        "ソニック"
+      ]
+    },
+    "魔物獵人": {
+      "kind": "game",
+      "aliases": [
+        "魔物獵人",
+        "MONSTER HUNTER",
+        "モンスターハンター"
+      ]
+    },
+    "惡靈古堡": {
+      "kind": "game",
+      "aliases": [
+        "惡靈古堡",
+        "BIOHAZARD",
+        "Resident Evil",
+        "バイオハザード"
+      ]
+    },
+    "潛龍諜影": {
+      "kind": "game",
+      "aliases": [
+        "潛龍諜影",
+        "METAL GEAR",
+        "メタルギア"
+      ]
+    },
+    "沉默之丘": {
+      "kind": "game",
+      "aliases": [
+        "沉默之丘",
+        "SILENT HILL",
+        "サイレントヒル"
+      ]
+    },
+    "聖劍傳說": {
+      "kind": "game",
+      "aliases": [
+        "聖劍傳說",
+        "聖剣伝説",
+        "Secret of Mana"
+      ]
+    },
+    "時空之鑰": {
+      "kind": "game",
+      "aliases": [
+        "時空之鑰",
+        "超時空之鑰",
+        "CHRONO TRIGGER",
+        "CHRONO CROSS",
+        "クロノ"
+      ]
+    },
+    "異度神劍": {
+      "kind": "game",
+      "aliases": [
+        "異度神劍",
+        "XENOBLADE",
+        "ゼノブレイド"
+      ]
+    },
+    "軌跡系列": {
+      "kind": "game",
+      "aliases": [
+        "空之軌跡",
+        "閃之軌跡",
+        "黎之軌跡",
+        "英雄傳說",
+        "英雄伝説",
+        "Falcom"
+      ]
+    },
+    "人中之龍": {
+      "kind": "game",
+      "aliases": [
+        "人中之龍",
+        "人如其龍",
+        "龍が如く",
+        "Yakuza"
+      ]
+    },
+    "艾爾登法環": {
+      "kind": "game",
+      "aliases": [
+        "法環",
+        "艾爾登",
+        "ELDEN RING",
+        "黑暗靈魂",
+        "DARK SOULS",
+        "惡魔靈魂",
+        "Demon's Souls",
+        "Bloodborne"
+      ]
+    },
+    "塊魂": {
+      "kind": "game",
+      "aliases": [
+        "塊魂",
+        "Katamari"
+      ]
+    },
+    "太鼓之達人": {
+      "kind": "game",
+      "aliases": [
+        "太鼓之達人",
+        "太鼓の達人"
+      ]
+    },
+    "對馬戰鬼": {
+      "kind": "game",
+      "aliases": [
+        "對馬戰鬼",
+        "Ghost of Tsushima"
+      ]
+    },
+    "鐵拳": {
+      "kind": "game",
+      "aliases": [
+        "鐵拳",
+        "TEKKEN"
+      ]
+    },
+    "逆轉裁判": {
+      "kind": "game",
+      "aliases": [
+        "逆轉裁判",
+        "逆転裁判",
+        "Ace Attorney"
+      ]
+    },
+    "菅野洋子": {
+      "kind": "composer",
+      "aliases": [
+        "菅野よう子",
+        "菅野洋子",
+        "Yoko Kanno"
+      ]
+    },
+    "梶浦由記": {
+      "kind": "composer",
+      "aliases": [
+        "梶浦由記",
+        "Yuki Kajiura",
+        "Kalafina"
+      ]
+    },
+    "植松伸夫": {
+      "kind": "composer",
+      "aliases": [
+        "植松伸夫",
+        "Nobuo Uematsu"
+      ]
+    },
+    "下村陽子": {
+      "kind": "composer",
+      "aliases": [
+        "下村陽子",
+        "Yoko Shimomura"
+      ]
+    },
+    "光田康典": {
+      "kind": "composer",
+      "aliases": [
+        "光田康典",
+        "Yasunori Mitsuda"
+      ]
+    },
+    "近藤浩治": {
+      "kind": "composer",
+      "aliases": [
+        "近藤浩治",
+        "Koji Kondo"
+      ]
+    },
+    "岡部啓一": {
+      "kind": "composer",
+      "aliases": [
+        "岡部啓一",
+        "Keiichi Okabe",
+        "MONACA"
+      ]
+    },
+    "目黑將司": {
+      "kind": "composer",
+      "aliases": [
+        "目黒将司",
+        "目黑將司",
+        "Shoji Meguro"
+      ]
+    },
+    "澤野弘之": {
+      "kind": "composer",
+      "aliases": [
+        "澤野弘之",
+        "Hiroyuki Sawano"
+      ]
+    },
+    "坂本龍一": {
+      "kind": "composer",
+      "aliases": [
+        "坂本龍一",
+        "Ryuichi Sakamoto"
+      ]
+    }
   },
   "sources": {
-    "books": true, "eslite": true, "pchome": true, "ruten": true,
-    "yahoo": true, "candlelight": true, "gmusic": true
+    "books": true,
+    "eslite": true,
+    "pchome": true,
+    "ruten": true,
+    "yahoo": true,
+    "candlelight": true,
+    "gmusic": true
   },
-  "marketplace_formats": ["vinyl", "cassette"],
+  "marketplace_formats": [
+    "vinyl",
+    "cassette"
+  ],
   "books_detail_limit": 80,
   "verify_limit_per_source": 500,
   "results_per_query": 40,
   "request_delay_sec": 0.7,
   "news": {
     "google_news": [
-      {"q": "アナログ盤 アニメ サウンドトラック", "hl": "ja", "gl": "JP"},
-      {"q": "アナログ盤 ゲーム サウンドトラック", "hl": "ja", "gl": "JP"},
-      {"q": "レコード サントラ 発売決定", "hl": "ja", "gl": "JP"},
-      {"q": "アナログレコード アニメ 発売", "hl": "ja", "gl": "JP"},
-      {"q": "カセットテープ アニメ 発売", "hl": "ja", "gl": "JP"},
-      {"q": "黑膠 動畫 原聲帶", "hl": "zh-TW", "gl": "TW"},
-      {"q": "黑膠 遊戲 原聲", "hl": "zh-TW", "gl": "TW"},
-      {"q": "anime soundtrack vinyl", "hl": "en-US", "gl": "US"},
-      {"q": "video game soundtrack vinyl pre-order", "hl": "en-US", "gl": "US"}
+      {
+        "q": "アナログ盤 アニメ サウンドトラック",
+        "hl": "ja",
+        "gl": "JP"
+      },
+      {
+        "q": "アナログ盤 ゲーム サウンドトラック",
+        "hl": "ja",
+        "gl": "JP"
+      },
+      {
+        "q": "レコード サントラ 発売決定",
+        "hl": "ja",
+        "gl": "JP"
+      },
+      {
+        "q": "アナログレコード アニメ 発売",
+        "hl": "ja",
+        "gl": "JP"
+      },
+      {
+        "q": "カセットテープ アニメ 発売",
+        "hl": "ja",
+        "gl": "JP"
+      },
+      {
+        "q": "黑膠 動畫 原聲帶",
+        "hl": "zh-TW",
+        "gl": "TW"
+      },
+      {
+        "q": "黑膠 遊戲 原聲",
+        "hl": "zh-TW",
+        "gl": "TW"
+      },
+      {
+        "q": "anime soundtrack vinyl",
+        "hl": "en-US",
+        "gl": "US"
+      },
+      {
+        "q": "video game soundtrack vinyl pre-order",
+        "hl": "en-US",
+        "gl": "US"
+      }
     ],
     "label_shops": [
-      {"name": "iam8bit", "host": "iam8bit.com"},
-      {"name": "Laced Records", "host": "www.lacedrecords.co"},
-      {"name": "Black Screen Records", "host": "blackscreenrecords.com"},
-      {"name": "Spacelab9", "host": "www.spacelab9.com"},
-      {"name": "Mondo", "host": "mondoshop.com"}
+      {
+        "name": "iam8bit",
+        "host": "iam8bit.com"
+      },
+      {
+        "name": "Laced Records",
+        "host": "www.lacedrecords.co"
+      },
+      {
+        "name": "Black Screen Records",
+        "host": "blackscreenrecords.com"
+      },
+      {
+        "name": "Spacelab9",
+        "host": "www.spacelab9.com"
+      },
+      {
+        "name": "Mondo",
+        "host": "mondoshop.com"
+      }
     ],
     "keep_days": 120
-  }
+  },
+  "search_budget_min": 25,
+  "verify_budget_min": 15
 }

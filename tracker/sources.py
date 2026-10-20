@@ -26,12 +26,18 @@ UA = {
 MARKET_PRE_RE = re.compile(r"代購|代訂|日本代|空運|海運")
 
 
+class SourceDown(Exception):
+    """通路被判定無法連線或已超過時間上限，後續請求直接略過。"""
+
+
 class Source:
     key = ""
     generic_only = False     # 只跑一般關鍵字
     marketplace = False      # 拍賣：作品關鍵字只跑黑膠 / 卡帶
     catalog = False          # 不用關鍵字，直接爬分類頁
     bare_franchise = False   # 作品關鍵字不加「黑膠」「原聲帶 CD」等後綴
+
+    MAX_CONSECUTIVE_FAILS = 6   # 連續失敗這麼多次就判定此通路擋連線，停止嘗試
 
     def __init__(self, cfg: dict, log):
         self.cfg = cfg
@@ -40,26 +46,48 @@ class Source:
         self.s.headers.update(UA)
         self.delay = float(cfg.get("request_delay_sec", 0.7))
         self.limit = int(cfg.get("results_per_query", 40))
+        self.fails = 0
+        self.down = ""            # 非空字串 = 已停止此通路的原因
+        self.deadline = float("inf")
 
-    def _req(self, method, url, retries=3, **kw):
+    def set_budget(self, minutes: float) -> None:
+        """設定這個階段（搜尋或複查）最多可花的時間。"""
+        self.deadline = time.monotonic() + minutes * 60
+
+    def _req(self, method, url, retries=2, **kw):
+        if self.down:
+            raise SourceDown(self.down)
+        if time.monotonic() > self.deadline:
+            raise SourceDown("超過時間上限")
         last = None
         for attempt in range(retries):
-            time.sleep(self.delay * (1 + attempt * 4))
+            time.sleep(self.delay * (1 + attempt * 3))
             try:
-                r = self.s.request(method, url, timeout=25, **kw)
-                if r.status_code in (403, 429, 484, 502, 503) and attempt < retries - 1:
-                    time.sleep(8 * (attempt + 1))
+                r = self.s.request(method, url, timeout=20, **kw)
+                if r.status_code in (429, 502, 503) and attempt < retries - 1:
+                    time.sleep(6)
                     last = r
                     continue
                 r.raise_for_status()
+                self.fails = 0
                 return r
+            except requests.HTTPError:
+                self._failed()
+                raise
             except (requests.ConnectionError, requests.Timeout) as e:
                 last = e
                 if attempt == retries - 1:
+                    self._failed()
                     raise
+        self._failed()
         if isinstance(last, requests.Response):
             last.raise_for_status()
         raise RuntimeError(f"request failed: {url}")
+
+    def _failed(self) -> None:
+        self.fails += 1
+        if self.fails >= self.MAX_CONSECUTIVE_FAILS and not self.down:
+            self.down = f"連續 {self.fails} 次連線失敗（可能封鎖海外連線）"
 
     def get(self, url, **kw):
         return self._req("GET", url, **kw)

@@ -24,7 +24,7 @@ from . import news as news_mod
 from .classify import (FORMAT_LABEL, Franchises, detect_format, detect_kind, detect_sub, detect_tags,
                        disc_count, is_japanese, is_relevant)
 from .models import OUT, PRE, SOURCE_META, STOCK, TODAY, TW, UNKNOWN, Item
-from .sources import SOURCES, Source
+from .sources import SOURCES, Source, SourceDown
 
 ROOT = Path(__file__).resolve().parent.parent
 STATE_PATH = ROOT / "data" / "state.json"
@@ -103,6 +103,7 @@ def collect_source(src: Source, queries: list[str], fr: Franchises, log) -> tupl
                 it.queries = [q]
                 found[it.key] = it
 
+    src.set_budget(float(src.cfg.get("search_budget_min", 25)))
     if src.catalog:
         try:
             take(src.crawl(), "分類頁")
@@ -110,8 +111,14 @@ def collect_source(src: Source, queries: list[str], fr: Franchises, log) -> tupl
             errors += 1
             log(f"  [{name}] 分類頁失敗: {e}")
     for n, q in enumerate(queries, 1):
+        if src.down or time.monotonic() > src.deadline:
+            src.down = src.down or "超過時間上限"
+            log(f"  [{name}] 停止搜尋：{src.down}（完成 {n - 1}/{len(queries)}）")
+            break
         try:
             take(src.search(q), q)
+        except SourceDown:
+            continue
         except Exception as e:  # noqa: BLE001
             errors += 1
             log(f"  [{name}] 「{q}」失敗: {e}")
@@ -242,7 +249,8 @@ def main():
         def run_verify(s: Source):
             mine = sorted((i for i in results.values() if i.source == s.key and not i.verified),
                           key=lambda i: (not i.jp, order.get(i.status, 9)))
-            if mine:
+            if mine and not s.down:
+                s.set_budget(float(cfg.get("verify_budget_min", 15)))
                 try:
                     s.verify(mine, state, limit)
                 except Exception as e:  # noqa: BLE001
@@ -266,7 +274,17 @@ def main():
     STATE_PATH.parent.mkdir(exist_ok=True)
     state["last_run"] = now
     STATE_PATH.write_text(json.dumps(state, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
-    (OUT_DIR / "items.json").write_text(json.dumps([to_row(i) for i in items], ensure_ascii=False,
+    rows = [to_row(i) for i in items]
+    # 本次連不上的通路：沿用上次的資料（標示未更新），避免網站上整個通路消失
+    down = {s.key: s.down for s in srcs if s.down}
+    if down:
+        have = {r["id"] for r in rows}
+        prev = load_json(OUT_DIR / "items.json", [])
+        kept = [dict(r, v=False, n="本次未能更新，顯示上次資料") for r in prev
+                if r.get("s") in down and r.get("id") not in have]
+        rows += kept
+        log(f"沿用上次資料 {len(kept)} 筆：" + "、".join(f"{SOURCE_META[k]['name']}（{v}）" for k, v in down.items()))
+    (OUT_DIR / "items.json").write_text(json.dumps(rows, ensure_ascii=False,
                                                    separators=(",", ":")), encoding="utf-8")
     (OUT_DIR / "news.json").write_text(json.dumps(news, ensure_ascii=False, separators=(",", ":")),
                                        encoding="utf-8")
@@ -274,9 +292,10 @@ def main():
     count = lambda pred: sum(1 for i in items if pred(i))  # noqa: E731
     meta = {
         "generated": now, "seconds": round(time.time() - t0),
-        "total": len(items), "news": len(news),
-        "sources": [{"key": k, **SOURCE_META[k], "count": count(lambda i, k=k: i.source == k),
-                     "errors": errors.get(k, 0)} for k in enabled],
+        "total": len(rows), "news": len(news),
+        "sources": [{"key": k, **SOURCE_META[k],
+                     "count": sum(1 for r in rows if r["s"] == k),
+                     "errors": errors.get(k, 0), "down": down.get(k, "")} for k in enabled],
         "status": {s: count(lambda i, s=s: i.status == s) for s in (PRE, STOCK, UNKNOWN, OUT)},
         "formats": {f: count(lambda i, f=f: i.fmt == f) for f in FORMAT_LABEL},
         "verified": count(lambda i: i.verified),
