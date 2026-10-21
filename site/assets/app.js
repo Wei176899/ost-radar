@@ -26,17 +26,33 @@
   /* ------------------------------------------------------------ data */
   async function load() {
     const get = (u) => fetch(u, { cache: "no-cache" }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
-    const [items, news, meta] = await Promise.all([get("data/items.json"), get("data/news.json"), get("data/meta.json")]);
+    const [items, news, meta, thumbs] = await Promise.all([
+      get("data/items.json"), get("data/news.json"), get("data/meta.json"), get("img/map.json")]);
     ITEMS = items || []; NEWS = news || []; META = meta || {};
     (META.sources || []).forEach((s) => (SRC[s.key] = s));
-    ITEMS.forEach((it, i) => { it._i = i; it._q = `${it.t} ${it.fr || ""} ${it.sl || ""} ${FMT[it.f] || ""}`.toLowerCase(); });
+    const map = thumbs || {};
+    ITEMS.forEach((it, i) => {
+      it._i = i; it._q = `${it.t} ${it.fr || ""} ${it.sl || ""} ${FMT[it.f] || ""}`.toLowerCase();
+      const m = map[it.id];
+      if (m === 0) it.i = "";                              // 通路的「無圖片」佔位圖
+      else if (m) { it.th = `img/${m[0]}.webp`; it.c = m[1]; } // 同網域 WebP 縮圖 + 主色
+    });
   }
   const srcName = (k) => SRC[k]?.name || k;
 
   /* ------------------------------------------------------------ pieces */
-  function img(src, alt, cls = "") {
+  function img(src, alt, cls = "", { eager = false, fallback = "" } = {}) {
     if (!src || safeUrl(src) === "#") return "";
-    return `<img class="${esc(cls)}" src="${esc(safeUrl(src))}" alt="${esc(alt)}" loading="lazy" decoding="async" referrerpolicy="no-referrer">`;
+    const fb = fallback && safeUrl(fallback) !== "#" ? ` data-fb="${esc(safeUrl(fallback))}"` : "";
+    return `<img class="${esc(cls)}" src="${esc(safeUrl(src))}" alt="${esc(alt)}" width="360" height="360" decoding="async" ` +
+      `${eager ? 'loading="eager" fetchpriority="high"' : 'loading="lazy"'} referrerpolicy="no-referrer"${fb}>`;
+  }
+  // 封面：先用主色鋪底 → 同網域縮圖（失敗時退回通路原圖）
+  function cover(it, { eager = false, hi = false, phLen = 28 } = {}) {
+    const src = it.th || it.i;
+    return `<div class="cover"${it.c ? ` data-c="${esc(it.c)}"` : ""}><div class="ph" aria-hidden="true">${esc(it.t.slice(0, phLen))}</div>` +
+      img(src, "", "", { eager, fallback: it.th ? it.i : "" }) +
+      (hi && it.th && it.i ? img(it.i, it.t, "hi", { eager: true }) : "") + `</div>`;
   }
   function priceHtml(p) {
     return p ? `<span class="price"><small>NT$</small>${fmtN(p)}</span>` : `<span class="price">—</span>`;
@@ -59,7 +75,7 @@
     if (it.fr) sub.push(`<span>${esc(it.fr)}</span>`);
     return `<${tag} class="card${it.st === "缺貨" ? " is-out" : ""}" data-f="${esc(it.f)}" data-i="${it._i}" type="button" aria-label="${esc(it.t)}，${esc(it.st)}，${esc(srcName(it.s))}">
       <div class="sleeve"><span class="disc" aria-hidden="true"></span>
-        <div class="cover"><div class="ph" aria-hidden="true">${esc(it.t.slice(0, 28))}</div>${img(it.i, "")}</div>
+        ${cover(it)}
         <div class="pill-row"><span class="pill ${st}">${esc(stLabel(it))}</span>${flags}</div>
         <span class="fmt-tag">${esc(FMT[it.f] || it.f)}${it.d ? " ×" + esc(it.d) : ""}</span>
       </div>
@@ -98,7 +114,8 @@
     countUp($("#heroCount"), n.pre);
     const pics = pre.filter((i) => i.i && !MARKET.has(i.s)).slice(0, 3);
     const fill = pics.length < 3 ? jp.filter((i) => i.i && !MARKET.has(i.s) && i.st === "現貨").slice(0, 3 - pics.length) : [];
-    $("#heroSleeves").innerHTML = [...pics, ...fill].map((i) => `<img class="ok" src="${esc(safeUrl(i.i))}" alt="" referrerpolicy="no-referrer" data-ph>`).join("");
+    $("#heroSleeves").innerHTML = [...pics, ...fill].map((i) =>
+      img(i.th || i.i, "", "ok", { eager: true, fallback: i.th ? i.i : "" }).replace("<img ", "<img data-ph ")).join("");
     if (META.generated) $("#updated").textContent = `更新 ${META.generated.slice(5).replace("-", "/")}`;
     $("#footMeta").textContent = META.generated ? `更新於 ${META.generated.replace(/-/g, ".")} · ${fmtN(META.total)} 筆 · ${fmtN(META.news)} 則新聞` : "";
   }
@@ -146,6 +163,7 @@
 
   function renderPulse() {
     const fl = ITEMS.filter((i) => (i.fl || []).length && i.jp);
+    if (!fl.length) { $("#pulse").hidden = true; $('.nav-links a[href="#pulse"]').hidden = true; return; }
     const by = (p) => fl.filter((i) => i.fl.some((f) => f.startsWith(p)));
     const defs = [
       { k: "all", name: "全部", list: fl },
@@ -186,20 +204,20 @@
     const labels = NEWS.filter((n) => n.type === "label").sort((a, b) => (b.jp - a.jp) || (b.announce - a.announce) || b.date.localeCompare(a.date)).slice(0, 8);
     $("#labelGrid").innerHTML = labels.map((n) => `
       <a class="lcard" href="${esc(safeUrl(n.url))}" ${ext}>
-        <div class="lc-img">${img(n.image, "", "ok")}<span class="pill-row"><span class="pill ${n.status === "預購" ? "pre" : n.status === "現貨" ? "stock" : "out"}">${esc(n.status)}</span></span></div>
+        <div class="lc-img">${img(/cdn\.shopify\.com/.test(n.image || "") ? n.image + (n.image.includes("?") ? "&" : "?") + "width=360" : n.image, "", "ok")}<span class="pill-row"><span class="pill ${n.status === "預購" ? "pre" : n.status === "現貨" ? "stock" : "out"}">${esc(n.status)}</span></span></div>
         <span class="lc-t">${esc(n.title)}</span>
         <span class="lc-m"><span>${esc(n.source)}</span><span>${n.price ? esc(n.currency) + " " + n.price : ""}</span></span>
       </a>`).join("") || `<p class="rail-empty">尚無資料</p>`;
   }
 
   /* ------------------------------------------------------------ catalog */
-  const F = { q: "", fmt: "", st: new Set(), kind: new Set(), src: new Set(), tag: new Set(), fr: "", sort: "smart", onlyJp: true, hideOut: true, onlyVer: false };
+  const F = { q: "", ch: "shop", fmt: "", st: new Set(), kind: new Set(), src: new Set(), tag: new Set(), fr: "", sort: "smart", onlyJp: true, hideOut: true, onlyVer: false };
   let filtered = [], cursor = 0;
   const PAGE = 36;
 
   function readURL() {
     const p = new URLSearchParams(location.search);
-    F.q = p.get("q") || ""; F.fmt = p.get("f") || ""; F.fr = p.get("fr") || ""; F.sort = p.get("sort") || "smart";
+    F.q = p.get("q") || ""; F.ch = p.get("ch") ?? "shop"; F.fmt = p.get("f") || ""; F.fr = p.get("fr") || ""; F.sort = p.get("sort") || "smart";
     ["st", "kind", "src", "tag"].forEach((k) => (F[k] = new Set((p.get(k) || "").split(",").filter(Boolean))));
     if (p.has("jp")) F.onlyJp = p.get("jp") !== "0";
     if (p.has("out")) F.hideOut = p.get("out") !== "1";
@@ -207,15 +225,21 @@
   }
   function writeURL() {
     const p = new URLSearchParams();
-    if (F.q) p.set("q", F.q); if (F.fmt) p.set("f", F.fmt); if (F.fr) p.set("fr", F.fr); if (F.sort !== "smart") p.set("sort", F.sort);
+    if (F.q) p.set("q", F.q); if (F.ch !== "shop") p.set("ch", F.ch); if (F.fmt) p.set("f", F.fmt); if (F.fr) p.set("fr", F.fr); if (F.sort !== "smart") p.set("sort", F.sort);
     ["st", "kind", "src", "tag"].forEach((k) => F[k].size && p.set(k, [...F[k]].join(",")));
     if (!F.onlyJp) p.set("jp", "0"); if (!F.hideOut) p.set("out", "1"); if (F.onlyVer) p.set("ver", "1");
+    const cur = new URLSearchParams(location.search).get("item");
+    if (cur) p.set("item", cur);
     const s = p.toString();
     history.replaceState(null, "", (s ? "?" + s : location.pathname) + location.hash);
   }
 
   function match(it, skip = "") {
     if (F.onlyJp && !it.jp) return false;
+    if (skip !== "ch" && !F.src.size && F.ch) {               // 指定通路時不受此限制
+      if (F.ch === "shop" && MARKET.has(it.s)) return false;
+      if (F.ch === "market" && !MARKET.has(it.s)) return false;
+    }
     if (skip !== "st" && F.hideOut && it.st === "缺貨" && !F.st.has("缺貨")) return false;
     if (F.onlyVer && !it.v) return false;
     if (skip !== "fmt" && F.fmt && it.f !== F.fmt) return false;
@@ -245,6 +269,10 @@
     el.innerHTML = defs.map((d) => `<button class="chip" type="button" data-v="${esc(d.v)}" aria-pressed="${F[dim].has(d.v)}">${esc(d.label)}<small>${d.n ?? ""}</small></button>`).join("");
   }
   function renderControls() {
+    const cc = counts("ch", (i) => (MARKET.has(i.s) ? "market" : "shop"));
+    $("#chSeg").innerHTML = [["shop", "商店"], ["market", "拍賣"], ["", "全部"]].map(([v, l]) =>
+      `<button type="button" data-v="${v}" aria-pressed="${F.ch === v}">${l}<small>${fmtN(v ? cc[v] || 0 : (cc.shop || 0) + (cc.market || 0))}</small></button>`).join("");
+    $("#chSeg").classList.toggle("muted", F.src.size > 0);
     const cf = counts("fmt", (i) => i.f), tot = Object.values(cf).reduce((a, b) => a + b, 0);
     $("#fmtSeg").innerHTML = [["", "全部", tot], ...Object.keys(FMT).map((k) => [k, FMT[k], cf[k] || 0])]
       .map(([v, l, n]) => `<button type="button" data-v="${v}" aria-pressed="${F.fmt === v}">${l}<small>${fmtN(n)}</small></button>`).join("");
@@ -289,6 +317,7 @@
 
     let t;
     $("#q").addEventListener("input", (e) => { clearTimeout(t); t = setTimeout(() => { F.q = e.target.value.trim(); applyFilters(); }, 180); });
+    $("#chSeg").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; F.ch = b.dataset.v; F.src.clear(); applyFilters(); });
     $("#fmtSeg").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; F.fmt = b.dataset.v; applyFilters(); });
     [["#statusChips", "st"], ["#kindChips", "kind"], ["#srcChips", "src"], ["#tagChips", "tag"]].forEach(([s, k]) =>
       $(s).addEventListener("click", (e) => {
@@ -301,7 +330,7 @@
     $("#hideOut").addEventListener("change", (e) => { F.hideOut = e.target.checked; applyFilters(); });
     $("#onlyVerified").addEventListener("change", (e) => { F.onlyVer = e.target.checked; applyFilters(); });
     $("#resetBtn").addEventListener("click", () => {
-      Object.assign(F, { q: "", fmt: "", fr: "", sort: "smart", onlyJp: true, hideOut: true, onlyVer: false });
+      Object.assign(F, { q: "", ch: "shop", fmt: "", fr: "", sort: "smart", onlyJp: true, hideOut: true, onlyVer: false });
       ["st", "kind", "src", "tag"].forEach((k) => F[k].clear());
       $("#q").value = ""; $("#frSel").value = ""; $("#sortSel").value = "smart";
       $("#onlyJp").checked = true; $("#hideOut").checked = true; $("#onlyVerified").checked = false;
@@ -321,6 +350,17 @@
     $("#filterClose").addEventListener("click", () => setPanel(false));
     $("#applyBtn").addEventListener("click", () => { setPanel(false); $("#catalog").scrollIntoView({ behavior: reduce ? "auto" : "smooth" }); });
     document.addEventListener("keydown", (e) => { if (e.key === "Escape" && panel.classList.contains("open")) setPanel(false); });
+
+    $("#heroSearch").addEventListener("submit", (e) => {
+      e.preventDefault();
+      F.q = $("#heroQ").value.trim(); $("#q").value = F.q; applyFilters();
+      $("#catalog").scrollIntoView({ behavior: reduce ? "auto" : "smooth" });
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key !== "/" || /INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName) || !$("#sheet").hidden) return;
+      e.preventDefault(); $("#q").focus({ preventScroll: true });
+      $("#filters").scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+    });
 
     new IntersectionObserver((es) => es[0].isIntersecting && more(), { rootMargin: "800px" }).observe($("#sentinel"));
     applyFilters();
@@ -371,23 +411,45 @@
     const alts = similar(it);
     $("#sheetBody").innerHTML = `
       <div class="sb-hero card" data-f="${esc(it.f)}"><span class="disc" aria-hidden="true"></span>
-        <div class="cover"><div class="ph" aria-hidden="true">${esc(it.t.slice(0, 40))}</div>${img(it.i, it.t)}</div></div>
+        ${cover(it, { eager: true, hi: true, phLen: 40 })}</div>
       <p class="sb-k">${esc(srcName(it.s))} · ${esc(FMT_LONG[it.f] || "")}</p>
       <h2 class="sb-t" id="sheetTitle">${esc(it.t)}</h2>
       <p class="sb-price">${it.p ? `<small>NT$</small>${fmtN(it.p)}` : "—"}</p>
       <div class="sb-status"><span class="pill ${st}">${esc(stLabel(it))}</span>${ver}</div>
       <dl class="sb-dl">${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}</dl>
-      <a class="btn primary sb-buy" href="${esc(safeUrl(it.u))}" ${ext}>前往 ${esc(srcName(it.s))} <span aria-hidden="true">↗</span></a>
+      <div class="sb-actions">
+        <a class="btn primary sb-buy" href="${esc(safeUrl(it.u))}" ${ext}>前往 ${esc(srcName(it.s))} <span aria-hidden="true">↗</span></a>
+        <button class="btn ghost sb-share" type="button" data-share>分享</button>
+      </div>
       ${alts.length ? `<div class="sb-alt"><h4>其他通路</h4>
-        ${alts.map((o) => `<a class="alt-row" href="#" data-i="${o._i}">${o.i ? img(o.i, "", "ok") : `<span class="ph"></span>`}
+        ${alts.map((o) => `<a class="alt-row" href="#" data-i="${o._i}">${o.i ? img(o.th || o.i, "", "ok", { fallback: o.th ? o.i : "" }) : `<span class="ph"></span>`}
           <span><span class="at">${esc(o.t)}</span><span class="as">${esc(srcName(o.s))}</span></span>
           <span class="ap">${o.p ? "$" + fmtN(o.p) : "—"}<span>${esc(o.st)}</span></span></a>`).join("")}</div>` : ""}`;
+    const u = new URL(location.href); u.searchParams.set("item", it.id); u.hash = "";
+    history.replaceState(null, "", u);
+    current = it;
     const sheet = $("#sheet");
     sheet.hidden = false; document.body.classList.add("lock");
     $(".sheet-card").scrollTop = 0;
     $(".sheet-close").focus({ preventScroll: true });
   }
+  let current = null;
+  function toast(msg) {
+    const t = $("#toast"); t.textContent = msg; t.hidden = false;
+    clearTimeout(toast._t); toast._t = setTimeout(() => (t.hidden = true), 2200);
+  }
+  async function share() {
+    if (!current) return;
+    const url = location.href, title = current.t;
+    try {
+      if (navigator.share) await navigator.share({ title, url });
+      else { await navigator.clipboard.writeText(url); toast("已複製連結"); }
+    } catch (e) { /* 使用者取消分享 */ }
+  }
   function closeSheet() {
+    if ($("#sheet").hidden) return;
+    const u = new URL(location.href); u.searchParams.delete("item"); history.replaceState(null, "", u);
+    current = null;
     $("#sheet").hidden = true; document.body.classList.remove("lock");
     lastFocus?.focus?.({ preventScroll: true });
   }
@@ -396,6 +458,7 @@
       const c = e.target.closest(".card[data-i], .alt-row[data-i]");
       if (c && !c.closest(".sb-hero")) { e.preventDefault(); openSheet(ITEMS[+c.dataset.i]); return; }
       if (e.target.closest("[data-close]")) closeSheet();
+      if (e.target.closest("[data-share]")) share();
       const fr = e.target.closest("a[data-fr]");
       if (fr) {
         e.preventDefault(); closeSheet();
@@ -418,11 +481,16 @@
   /* ------------------------------------------------------------ stores */
   function renderStores() {
     $("#storeList").innerHTML = (META.sources || []).map((s) => `
-      <li><a href="${esc(safeUrl(s.home))}" ${ext}>
+      <li><button class="store-row" type="button" data-src="${esc(s.key)}" aria-label="只看 ${esc(s.name)} 的商品">
         <span class="sn">${esc(s.name)}${s.down ? ` <span class="se">本次未更新</span>` : s.errors ? ` <span class="se">${s.errors} 次讀取失敗</span>` : ""}</span>
         <span class="st">${esc(s.type)}</span>
         <span class="sc">${fmtN(s.count)}</span>
-      </a></li>`).join("");
+      </button><a class="store-ext" href="${esc(safeUrl(s.home))}" ${ext} aria-label="開啟 ${esc(s.name)} 網站">↗</a></li>`).join("");
+    $("#storeList").addEventListener("click", (e) => {
+      const b = e.target.closest(".store-row"); if (!b) return;
+      F.src = new Set([b.dataset.src]); F.onlyJp = true; $("#onlyJp").checked = true; applyFilters();
+      $("#catalog").scrollIntoView({ behavior: reduce ? "auto" : "smooth" });
+    });
   }
 
   /* ------------------------------------------------------------ chrome */
@@ -473,14 +541,24 @@
   document.addEventListener("error", (e) => {
     const t = e.target;
     if (t.tagName !== "IMG") return;
+    if (t.dataset.fb) { t.src = t.dataset.fb; delete t.dataset.fb; return; } // 縮圖失敗 → 通路原圖
     if (t.hasAttribute("data-ph")) t.replaceWith(Object.assign(document.createElement("div"), { className: "ph" }));
     else t.remove();
   }, true);
+  // 主色底：用 CSSOM 設定（嚴格 CSP 不允許 HTML 內的 style 屬性）
+  new MutationObserver((ms) => ms.forEach((m) => m.addedNodes.forEach((n) => {
+    if (n.nodeType !== 1) return;
+    (n.matches?.("[data-c]") ? [n] : []).concat([...n.querySelectorAll("[data-c]")])
+      .forEach((el) => { el.style.backgroundColor = el.dataset.c; el.removeAttribute("data-c"); });
+  }))).observe(document.body, { childList: true, subtree: true });
   bindChrome();
   skeleton();
   parallax();
   load().then(() => {
     renderHero(); renderTicker(); renderUpcoming(); renderPulse(); renderNews(); renderStores();
     bindCatalog(); bindSheet();
+    const id = new URLSearchParams(location.search).get("item");
+    const hit = id && ITEMS.find((i) => i.id === id);
+    if (hit) openSheet(hit);
   });
 })();

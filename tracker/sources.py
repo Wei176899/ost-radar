@@ -420,13 +420,20 @@ class Ruten(Source):
                     status = STOCK if qty > 0 else OUT
                 img = d.get("Image") or ""
                 it = Item("ruten", d["ProdId"], title, f"https://www.ruten.com.tw/item/show?{d['ProdId']}",
-                          to_int((d.get("PriceRange") or [None])[0]), status, "",
-                          f"https://gcs.rimg.com.tw{img}" if img else "")
+                          to_int((d.get("PriceRange") or [None])[0]), status, "", ruten_image(img))
                 it.stock, it.verified = qty, True
                 if ship and ship < 1000:
                     it.note = f"下單後約 {ship} 天出貨"
                 out.append(it)
         return out
+
+
+def ruten_image(path: str) -> str:
+    """露天圖片分兩個主機：/c… 在 a.rimg.com.tw，/g… 在 gcs.rimg.com.tw（放錯會回傳佔位圖）。"""
+    if not path:
+        return ""
+    host = "a.rimg.com.tw" if path.startswith("/c") else "gcs.rimg.com.tw"
+    return f"https://{host}{path}"
 
 
 # ======================================================================= Yahoo 拍賣

@@ -20,9 +20,11 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;600&family=Noto+Sans+TC:wght@400;500;700;900&family=Noto+Serif+TC:wght@600;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=7">
-<script src="assets/theme.js?v=7"></script>
+<!-- 字型非同步載入：Google Fonts 慢或連不上時，頁面先用系統字型顯示，不會整頁空白 -->
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;600&family=Noto+Sans+TC:wght@400;500;700;900&family=Noto+Serif+TC:wght@600;900&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;600&family=Noto+Sans+TC:wght@400;500;700;900&family=Noto+Serif+TC:wght@600;900&display=swap" media="print" id="webfonts">
+<link rel="stylesheet" href="assets/style.css?v=9">
+<script src="assets/theme.js?v=9"></script>
 </head>
 <body>
 <a class="skip" href="#catalog">跳到商品列表</a>
@@ -56,9 +58,13 @@
         <span class="line"><span>原聲實體盤，</span></span>
         <span class="line"><span><em>台灣</em>哪裡買。</span></span>
       </h1>
+      <form class="hero-search" id="heroSearch" role="search">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input type="search" id="heroQ" placeholder="作品、曲名、作曲家" aria-label="搜尋商品" autocomplete="off" enterkeyhint="search">
+        <button class="btn primary" type="submit">搜尋</button>
+      </form>
       <div class="hero-cta">
-        <a class="btn primary" href="#upcoming">即將發售<span aria-hidden="true">↓</span></a>
-        <a class="btn ghost" href="#catalog">全部商品</a>
+        <a class="btn ghost" href="#upcoming">即將發售<span aria-hidden="true">↓</span></a>
       </div>
     </div>
     <div class="hero-stage" aria-hidden="true">
@@ -165,7 +171,10 @@
       </div>
     </div>
 
-    <p class="result-line" id="resultLine" aria-live="polite"></p>
+    <div class="result-row">
+      <p class="result-line" id="resultLine" aria-live="polite"></p>
+      <div class="seg small" id="chSeg" role="group" aria-label="通路類型"></div>
+    </div>
     <div class="grid" id="grid"></div>
     <div class="sentinel" id="sentinel" aria-hidden="true"></div>
   </section>
@@ -197,7 +206,8 @@
   </article>
 </div>
 
+<div class="toast" id="toast" role="status" hidden></div>
 <noscript><p class="noscript">需要啟用 JavaScript 才能瀏覽商品資料。</p></noscript>
-<script src="assets/app.js?v=7" defer></script>
+<script src="assets/app.js?v=9" defer></script>
 </body>
 </html>

@@ -13,3 +13,6 @@ venv/
 *.p12
 secrets*.json
 credentials*.json
+
+# 部署時產生的封面縮圖（GitHub Actions 快取保存）
+site/img/

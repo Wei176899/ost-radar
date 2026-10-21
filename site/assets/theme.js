@@ -6,3 +6,11 @@
     else if (matchMedia("(prefers-color-scheme: light)").matches) document.documentElement.dataset.theme = "light";
   } catch (e) { /* 私密模式等無法使用 localStorage */ }
 })();
+
+/* 網頁字型載入完成後才套用（避免外部字型拖慢首屏） */
+(function () {
+  var l = document.getElementById("webfonts");
+  if (!l) return;
+  var on = function () { l.media = "all"; };
+  if (l.sheet) on(); else l.addEventListener("load", on);
+})();

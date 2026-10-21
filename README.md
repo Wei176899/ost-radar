@@ -12,6 +12,7 @@ tracker/            爬蟲（python -m tracker）
   sources.py        7 個通路：搜尋 + 庫存複查
   classify.py       格式／類型／版本／作品／日系判斷
   news.py           Google News + 海外遊戲動畫唱片廠牌新品
+  thumbs.py         封面縮圖（WebP 360px＋主色），部署時產生、以快取保存
 site/               網站（純 HTML/CSS/JS，無需建置）
   data/             爬蟲輸出：items.json、news.json、meta.json、items.csv
 data/state.json     歷史紀錄（判斷新上架、補貨、到貨、降價）
@@ -37,6 +38,7 @@ pip install -r requirements.txt
 python -m tracker                # 完整（約 30 分鐘）
 python -m tracker --quick        # 只跑一般關鍵字
 python -m tracker --only eslite,candlelight --no-news
+python -m tracker.thumbs         # 產生封面縮圖（site/img/，不進 git）
 python -m http.server 8000 --bind 127.0.0.1 --directory site   # 開 http://localhost:8000 預覽
 ```
 
