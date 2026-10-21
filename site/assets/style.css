@@ -503,3 +503,6 @@ body.lock { overflow: hidden; }
   .hero-title .line > span { transform: none; }
   .reveal { opacity: 1; transform: none; }
 }
+.sb-ref { display: inline-flex; gap: 6px; margin-top: 14px; font-size: 13px; color: var(--mute); text-decoration: underline; text-underline-offset: 3px; }
+.sb-ref:hover { color: var(--ink); }
+a.store-row { text-decoration: none; color: inherit; }

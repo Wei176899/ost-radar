@@ -1,8 +1,8 @@
 {
- "generated": "2026-10-21 10:12",
- "seconds": 928,
- "total": 4026,
- "news": 241,
+ "generated": "2026-10-21 22:30",
+ "seconds": 1685,
+ "total": 4787,
+ "news": 243,
  "sources": [
   {
    "key": "books",
@@ -10,8 +10,8 @@
    "type": "書店電商",
    "home": "https://www.books.com.tw/",
    "count": 139,
-   "errors": 6,
-   "down": "連續 6 次連線失敗（可能封鎖海外連線）"
+   "errors": 2,
+   "down": ""
   },
   {
    "key": "eslite",
@@ -32,6 +32,60 @@
    "down": ""
   },
   {
+   "key": "gmusic",
+   "name": "玫瑰大眾",
+   "type": "唱片行",
+   "home": "https://www.g-music.com.tw/",
+   "count": 86,
+   "errors": 0,
+   "down": ""
+  },
+  {
+   "key": "candlelight",
+   "name": "燭光唱片",
+   "type": "唱片行",
+   "home": "https://www.candlelightrecords.tw/",
+   "count": 328,
+   "errors": 0,
+   "down": "網站維護中"
+  },
+  {
+   "key": "shs",
+   "name": "山海山唱片行",
+   "type": "唱片行",
+   "home": "https://www.shsmusic.tw/",
+   "count": 385,
+   "errors": 0,
+   "down": ""
+  },
+  {
+   "key": "ccr",
+   "name": "佳佳唱片行",
+   "type": "唱片行",
+   "home": "https://www.ccr.com.tw/",
+   "count": 7,
+   "errors": 0,
+   "down": ""
+  },
+  {
+   "key": "wwr",
+   "name": "小白兔唱片",
+   "type": "唱片行",
+   "home": "https://wwr.com.tw/",
+   "count": 16,
+   "errors": 0,
+   "down": ""
+  },
+  {
+   "key": "fivemusic",
+   "name": "五大唱片",
+   "type": "唱片行",
+   "home": "https://www.5music.com.tw/",
+   "count": 323,
+   "errors": 0,
+   "down": ""
+  },
+  {
    "key": "ruten",
    "name": "露天拍賣",
    "type": "拍賣",
@@ -45,42 +99,33 @@
    "name": "Yahoo 拍賣",
    "type": "拍賣",
    "home": "https://tw.bid.yahoo.com/",
-   "count": 1312,
+   "count": 1314,
    "errors": 0,
    "down": ""
   },
   {
-   "key": "candlelight",
-   "name": "燭光唱片",
-   "type": "唱片行",
-   "home": "https://www.candlelightrecords.tw/",
-   "count": 328,
-   "errors": 0,
-   "down": "連續 6 次連線失敗（可能封鎖海外連線）"
-  },
-  {
-   "key": "gmusic",
-   "name": "玫瑰大眾",
-   "type": "唱片行",
-   "home": "https://www.g-music.com.tw/",
-   "count": 86,
+   "key": "myacg",
+   "name": "買動漫",
+   "type": "拍賣",
+   "home": "https://www.myacg.com.tw/",
+   "count": 28,
    "errors": 0,
    "down": ""
   }
  ],
  "status": {
-  "預購": 82,
-  "現貨": 3318,
-  "待確認": 0,
-  "缺貨": 159
+  "預購": 157,
+  "現貨": 3515,
+  "待確認": 422,
+  "缺貨": 693
  },
  "formats": {
-  "vinyl": 2859,
-  "7inch": 130,
-  "cd": 289,
-  "cassette": 281
+  "vinyl": 3303,
+  "7inch": 135,
+  "cd": 736,
+  "cassette": 285
  },
- "verified": 3559,
+ "verified": 4305,
  "franchises": [
   "AKIRA",
   "BanG Dream!",
@@ -99,6 +144,7 @@
   "坂本龍一",
   "城市獵人",
   "塊魂",
+  "天元突破",
   "太鼓之達人",
   "女神異聞錄",
   "孤獨搖滾",
@@ -149,5 +195,14 @@
   "鬼滅之刃",
   "魔物獵人",
   "魯邦三世"
+ ],
+ "links": [
+  {
+   "key": "discogs",
+   "name": "Discogs",
+   "type": "資料庫",
+   "home": "https://www.discogs.com/",
+   "search": "https://www.discogs.com/search/?q={q}&type=release"
+  }
  ]
 }

@@ -17,8 +17,13 @@ SOURCE_META = {
     "pchome": {"name": "PChome 24h", "type": "綜合電商", "home": "https://24h.pchome.com.tw/"},
     "gmusic": {"name": "玫瑰大眾", "type": "唱片行", "home": "https://www.g-music.com.tw/"},
     "candlelight": {"name": "燭光唱片", "type": "唱片行", "home": "https://www.candlelightrecords.tw/"},
+    "shs": {"name": "山海山唱片行", "type": "唱片行", "home": "https://www.shsmusic.tw/"},
+    "ccr": {"name": "佳佳唱片行", "type": "唱片行", "home": "https://www.ccr.com.tw/"},
+    "wwr": {"name": "小白兔唱片", "type": "唱片行", "home": "https://wwr.com.tw/"},
+    "fivemusic": {"name": "五大唱片", "type": "唱片行", "home": "https://www.5music.com.tw/"},
     "ruten": {"name": "露天拍賣", "type": "拍賣", "home": "https://www.ruten.com.tw/"},
     "yahoo": {"name": "Yahoo 拍賣", "type": "拍賣", "home": "https://tw.bid.yahoo.com/"},
+    "myacg": {"name": "買動漫", "type": "拍賣", "home": "https://www.myacg.com.tw/"},
 }
 
 
@@ -92,6 +97,8 @@ def norm_date(s) -> str:
             if not m:
                 return ""
             (y, mo), d = m.groups(), 1
+    if not 1950 <= int(y) <= TODAY.year + 3:  # 通路資料偶有打錯的年份（例如 2323）
+        return ""
     try:
         return date(int(y), int(mo), int(d)).isoformat()
     except ValueError:

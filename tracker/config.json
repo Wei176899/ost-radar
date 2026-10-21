@@ -1,5 +1,5 @@
 {
-  "_說明": "franchises：想追的作品/作曲家。aliases 第一個會拿去搜尋，其餘用來比對品名。kind: anime / game / studio / composer",
+  "_說明": "franchises：追蹤的作品與作曲家；aliases 第一項作為搜尋關鍵字，其餘用於比對。kind：anime / game / studio / composer。",
   "generic_queries": {
     "vinyl": [
       "黑膠 動畫 原聲帶",
@@ -658,10 +658,15 @@
     "books": true,
     "eslite": true,
     "pchome": true,
+    "gmusic": true,
+    "candlelight": true,
+    "shs": true,
+    "ccr": true,
+    "wwr": true,
+    "fivemusic": true,
     "ruten": true,
     "yahoo": true,
-    "candlelight": true,
-    "gmusic": true
+    "myacg": true
   },
   "marketplace_formats": [
     "vinyl",
@@ -744,5 +749,14 @@
     "keep_days": 120
   },
   "search_budget_min": 25,
-  "verify_budget_min": 15
+  "verify_budget_min": 15,
+  "links": [
+    {
+      "key": "discogs",
+      "name": "Discogs",
+      "type": "資料庫",
+      "home": "https://www.discogs.com/",
+      "search": "https://www.discogs.com/search/?q={q}&type=release"
+    }
+  ]
 }

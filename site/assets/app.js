@@ -18,7 +18,7 @@
   const ST_CLS = { 預購: "pre", 現貨: "stock", 缺貨: "out", 待確認: "unk" };
   const STATUSES = ["預購", "現貨", "待確認", "缺貨"];
   const TAGS = ["限定盤", "彩膠", "日版", "台灣版", "BOX", "附特典", "180g", "代購", "二手"];
-  const MARKET = new Set(["ruten", "yahoo"]);
+  const MARKET = new Set(["ruten", "yahoo", "myacg"]); // 載入後依 meta 的通路類型更新
   const TODAY = new Date().toISOString().slice(0, 10);
 
   let ITEMS = [], NEWS = [], META = {}, SRC = {};
@@ -29,7 +29,7 @@
     const [items, news, meta, thumbs] = await Promise.all([
       get("data/items.json"), get("data/news.json"), get("data/meta.json"), get("img/map.json")]);
     ITEMS = items || []; NEWS = news || []; META = meta || {};
-    (META.sources || []).forEach((s) => (SRC[s.key] = s));
+    (META.sources || []).forEach((s) => { SRC[s.key] = s; if (s.type === "拍賣") MARKET.add(s.key); });
     const map = thumbs || {};
     ITEMS.forEach((it, i) => {
       it._i = i; it._q = `${it.t} ${it.fr || ""} ${it.sl || ""} ${FMT[it.f] || ""}`.toLowerCase();
@@ -236,7 +236,7 @@
 
   function match(it, skip = "") {
     if (F.onlyJp && !it.jp) return false;
-    if (skip !== "ch" && !F.src.size && F.ch) {               // 指定通路時不受此限制
+    if (skip !== "ch" && skip !== "src" && !F.src.size && F.ch) {               // 指定通路時不受此限制
       if (F.ch === "shop" && MARKET.has(it.s)) return false;
       if (F.ch === "market" && !MARKET.has(it.s)) return false;
     }
@@ -389,6 +389,10 @@
       .filter(([, o], _, arr) => { const n = (arr._n ||= {}); n[o.s] = (n[o.s] || 0) + 1; return n[o.s] <= 2; })
       .slice(0, 6).map(([, o]) => o);
   }
+  // 查詢外部資料庫用的關鍵字：去掉格式、版本、通路標記
+  const refQuery = (it) => it.t.replace(/[【\[(（][^】\])）]*[】\])）]/g, " ")
+    .replace(/黑膠|彩膠|唱片|LP|CD|限定|初回|生產|生産|盤|預購|代購|代訂|現貨|全新|日版|進口|\d+\s*(?:吋|寸)/gi, " ")
+    .replace(/\s+/g, " ").trim().slice(0, 80);
   let lastFocus = null;
   function openSheet(it) {
     lastFocus = document.activeElement;
@@ -421,6 +425,7 @@
         <a class="btn primary sb-buy" href="${esc(safeUrl(it.u))}" ${ext}>前往 ${esc(srcName(it.s))} <span aria-hidden="true">↗</span></a>
         <button class="btn ghost sb-share" type="button" data-share>分享</button>
       </div>
+      ${(META.links || []).map((l) => `<a class="sb-ref" href="${esc(safeUrl(l.search.replace("{q}", encodeURIComponent(refQuery(it)))))}" ${ext}>在 ${esc(l.name)} 查詢版本資料 <span aria-hidden="true">↗</span></a>`).join("")}
       ${alts.length ? `<div class="sb-alt"><h4>其他通路</h4>
         ${alts.map((o) => `<a class="alt-row" href="#" data-i="${o._i}">${o.i ? img(o.th || o.i, "", "ok", { fallback: o.th ? o.i : "" }) : `<span class="ph"></span>`}
           <span><span class="at">${esc(o.t)}</span><span class="as">${esc(srcName(o.s))}</span></span>
@@ -485,7 +490,11 @@
         <span class="sn">${esc(s.name)}${s.down ? ` <span class="se">本次未更新</span>` : s.errors ? ` <span class="se">${s.errors} 次讀取失敗</span>` : ""}</span>
         <span class="st">${esc(s.type)}</span>
         <span class="sc">${fmtN(s.count)}</span>
-      </button><a class="store-ext" href="${esc(safeUrl(s.home))}" ${ext} aria-label="開啟 ${esc(s.name)} 網站">↗</a></li>`).join("");
+      </button><a class="store-ext" href="${esc(safeUrl(s.home))}" ${ext} aria-label="開啟 ${esc(s.name)} 網站">↗</a></li>`).join("") +
+      (META.links || []).map((l) => `
+      <li><a class="store-row" href="${esc(safeUrl(l.home))}" ${ext}>
+        <span class="sn">${esc(l.name)}</span><span class="st">${esc(l.type)}</span><span class="sc">—</span>
+      </a><a class="store-ext" href="${esc(safeUrl(l.home))}" ${ext} aria-label="開啟 ${esc(l.name)} 網站">↗</a></li>`).join("");
     $("#storeList").addEventListener("click", (e) => {
       const b = e.target.closest(".store-row"); if (!b) return;
       F.src = new Set([b.dataset.src]); F.onlyJp = true; $("#onlyJp").checked = true; applyFilters();

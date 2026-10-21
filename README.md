@@ -1,62 +1,42 @@
-# 原聲雷達 OST Radar
+# OST Radar
 
-追蹤台灣 7 個通路的**日本動畫／電玩原聲實體盤**（黑膠 LP、7 吋、CD、卡帶），
-標示預購／現貨／缺貨，逐筆回到商品頁或庫存 API 複查，並收集發售新聞。
-GitHub Actions 每 3 天自動執行一次，結果發布成 GitHub Pages 網站（手機、電腦都能看）。
+日本動畫與電玩原聲實體盤（黑膠、CD、卡帶）在台灣通路的預購與現貨資訊。
 
-## 結構
+**https://wei176899.github.io/ost-radar/**
 
-```
-tracker/            爬蟲（python -m tracker）
-  config.json       關鍵字、追蹤作品、通路開關、新聞來源
-  sources.py        7 個通路：搜尋 + 庫存複查
-  classify.py       格式／類型／版本／作品／日系判斷
-  news.py           Google News + 海外遊戲動畫唱片廠牌新品
-  thumbs.py         封面縮圖（WebP 360px＋主色），部署時產生、以快取保存
-site/               網站（純 HTML/CSS/JS，無需建置）
-  data/             爬蟲輸出：items.json、news.json、meta.json、items.csv
-data/state.json     歷史紀錄（判斷新上架、補貨、到貨、降價）
-.github/workflows/update.yml   每 3 天排程 + 部署
-```
+## 概覽
 
-## 通路與庫存複查
+資料由排程定期自台灣各電商、唱片行與拍賣平台取得，經分類後發布為靜態網站。
+商品狀態以各通路的庫存資訊或商品頁為準，並附上相關的發售消息。
 
-| 通路 | 方式 | 複查 |
-|---|---|---|
-| 誠品線上 | 搜尋 API | 商品 API（庫存數、按鈕狀態、出版日） |
-| 玫瑰大眾 | 搜尋 API | 即時庫存數（搜尋結果即含） |
-| 燭光唱片 | 原聲帶／J-Pop／預購分類頁 | 商品頁（已售完、預計出貨月份） |
-| PChome 24h | 搜尋 API | 按鈕 API（ForSale / SoldOut、數量） |
-| 露天拍賣 | 搜尋 + 商品 API | 賣家庫存數、預購出貨天數 |
-| Yahoo 拍賣 | 搜尋頁資料 | 賣家庫存狀態 |
-| 博客來 | 搜尋頁 + 商品頁發行日 | 購物車區塊有防機器人驗證，**不複查**，顯示「可訂購（未複查）」 |
+收錄通路：博客來、誠品線上、PChome 24h、玫瑰大眾、燭光唱片、山海山唱片行、佳佳唱片行、
+小白兔唱片、五大唱片、露天拍賣、Yahoo 拍賣、買動漫。版本資料另可連結至 Discogs 查詢。
 
-## 本機執行
+## 架構
 
 ```
+tracker/    資料擷取、分類與發售消息
+site/       靜態網站（HTML / CSS / JavaScript）
+data/       歷史狀態
+.github/    排程與部署
+```
+
+## 本機開發
+
+```bash
 pip install -r requirements.txt
-python -m tracker                # 完整（約 30 分鐘）
-python -m tracker --quick        # 只跑一般關鍵字
-python -m tracker --only eslite,candlelight --no-news
-python -m tracker.thumbs         # 產生封面縮圖（site/img/，不進 git）
-python -m http.server 8000 --bind 127.0.0.1 --directory site   # 開 http://localhost:8000 預覽
+python -m tracker
+python -m tracker.thumbs
+python -m http.server 8000 --bind 127.0.0.1 --directory site
 ```
 
-## 部署到 GitHub（免費）
+追蹤的作品、通路與關鍵字設定於 `tracker/config.json`。
 
-1. 在 GitHub 建立**公開** repository，把整個資料夾推上去（`main` 分支）。
-2. Settings → Pages → Source 選 **GitHub Actions**。
-3. Actions → 「更新資料並部署網站」→ Run workflow 先手動跑一次。
-4. 之後每 3 天台北時間早上 6 點自動更新；修改 `site/` 也會自動重新部署。
+## 部署
 
-## 自訂
+推送至 `main` 後由 GitHub Actions 建置並發布至 GitHub Pages；資料更新亦由同一流程定期執行。
 
-- 追新作品：在 `tracker/config.json` 的 `franchises` 加一筆（`aliases` 第一個用來搜尋）。
-- 關掉某通路：`sources` 裡改成 `false`。
-- 新聞關鍵字、海外廠牌：`news` 區塊。
+## 說明
 
-## 限制
-
-- 各通路改版時解析可能失效；失敗次數會顯示在網站「追蹤通路」區。
-- GitHub Actions 主機在海外，少數台灣網站可能對海外連線較嚴格，若某通路長期 0 筆可改在本機排程執行後推送。
-- 「日系」「動畫／遊戲」為關鍵字規則判斷，少數作品可能誤判。
+- 本站資料僅供參考，價格、庫存與發售日期請以各通路頁面為準。
+- 商品名稱、圖片及相關權利屬於各通路與權利人所有。

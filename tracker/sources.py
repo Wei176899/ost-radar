@@ -37,6 +37,7 @@ class Source:
     catalog = False          # 不用關鍵字，直接爬分類頁
     bare_franchise = False   # 作品關鍵字不加「黑膠」「原聲帶 CD」等後綴
 
+    timeout = 20                # 每個請求的逾時秒數
     MAX_CONSECUTIVE_FAILS = 6   # 連續失敗這麼多次就判定此通路擋連線，停止嘗試
 
     def __init__(self, cfg: dict, log):
@@ -63,12 +64,15 @@ class Source:
         for attempt in range(retries):
             time.sleep(self.delay * (1 + attempt * 3))
             try:
-                r = self.s.request(method, url, timeout=20, **kw)
+                r = self.s.request(method, url, timeout=self.timeout, **kw)
                 if r.status_code in (429, 502, 503) and attempt < retries - 1:
                     time.sleep(6)
                     last = r
                     continue
                 r.raise_for_status()
+                if "maintenance" in r.url:  # 平台維護頁（例如 WACA 的 maintenance.waca.ec）
+                    self.down = "網站維護中"
+                    raise SourceDown(self.down)
                 self.fails = 0
                 return r
             except requests.HTTPError:
@@ -132,7 +136,7 @@ class Books(Source):
         return out
 
     def verify(self, items, state, limit):
-        """發行日期：商品頁（有快取）；庫存：購物車資訊 AJAX（需瀏覽器，若安裝 Playwright 才會跑）。"""
+        """發行日期取自商品頁（有快取）；購物車區塊有防機器人驗證，不做庫存查詢。"""
         cache = state.setdefault("books_release", {})
         budget = int(self.cfg.get("books_detail_limit", 80))
         self.delay = max(self.delay, 1.5)
@@ -469,4 +473,266 @@ class Yahoo(Source):
         return out
 
 
-SOURCES = {c.key: c for c in (Books, Eslite, PChome, GMusic, Candlelight, Ruten, Yahoo)}
+# ======================================================================= 山海山唱片行
+SHS_KINDS = {"189": "vinyl", "187": "vinyl", "53": "vinyl", "58": "cd"}  # 動畫卡通、日韓影視、黑膠原聲、CD 原聲
+
+
+class Shs(Source):
+    key = "shs"
+    catalog = True
+
+    def crawl(self):
+        out: dict[str, Item] = {}
+        for kind, hint in SHS_KINDS.items():
+            for page in range(1, 30):
+                try:
+                    r = self.get(f"https://www.shsmusic.tw/tw/product/index.php?kind={kind}&page={page}")
+                except Exception as e:  # noqa: BLE001
+                    self.log(f"  [山海山] 分類 {kind} 第 {page} 頁失敗: {e}")
+                    break
+                soup = BeautifulSoup(r.text, "html.parser")
+                cards = soup.select(".pro-list .item[data-num]")
+                fresh = [c for c in cards if c["data-num"] not in out]
+                if not fresh:
+                    break
+                for c in fresh:
+                    pid = c["data-num"]
+                    tw = clean(c.select_one(".txt-tw").get_text()) if c.select_one(".txt-tw") else ""
+                    en = clean(c.select_one(".txt-en").get_text()) if c.select_one(".txt-en") else ""
+                    artist = clean(c.select_one(".author .txt-tw").get_text()) if c.select_one(".author .txt-tw") else ""
+                    mark = clean(c.select_one(".CDmark").get_text()) if c.select_one(".CDmark") else ""
+                    price = c.select_one(".price b")
+                    img = c.select_one("a.pic img")
+                    src = img.get("src", "") if img else ""
+                    m = re.search(r"path=([^&]+)", src)
+                    title = " ".join(x for x in (mark, tw, en) if x)
+                    it = Item("shs", pid, title, f"https://www.shsmusic.tw/tw/product/show.php?num={pid}",
+                              to_int(price.get_text()) if price else None, UNKNOWN,
+                              image=(f"https://www.shsmusic.tw/module/smallimg3.php?path={m.group(1)}&w=600&h=600"
+                                     if m else ""), seller=artist)
+                    it.fmt_hint = "7inch" if "7" in mark else ("cd" if "CD" in mark.upper() else hint)
+                    it.is_ost = True
+                    it.extra = "動畫" if kind == "189" else ""
+                    out[pid] = it
+        return list(out.values())
+
+    def verify(self, items, state, limit):
+        n = 0
+        for it in items[:limit]:
+            try:
+                txt = BeautifulSoup(self.get(it.url).text, "html.parser").get_text(" ", strip=True)
+            except SourceDown:
+                break
+            except Exception as e:  # noqa: BLE001
+                self.log(f"  [山海山] 複查失敗 {it.pid}: {e}")
+                continue
+            n += 1
+            it.verified = True
+            m = re.search(r"發行日期\s*(\d{4}-\d{2}-\d{2})", txt)
+            if m:
+                it.release = norm_date(m.group(1))
+            m = re.search(r"商品狀態\s*(有現貨|需調貨|需預購|已售完|絕版)", txt)
+            state_txt = m.group(1) if m else ""
+            if state_txt == "有現貨":
+                it.status = STOCK
+            elif is_future(it.release):
+                it.status = PRE
+            elif state_txt == "需預購":  # 已發行但需向海外訂購，不算預購
+                it.status, it.note = UNKNOWN, "可下單（海外調貨約一個月）"
+            elif state_txt == "需調貨":
+                it.status, it.note = UNKNOWN, "可下單（需調貨）"
+            elif state_txt in ("已售完", "絕版"):
+                it.status = OUT
+        self.log(f"  [山海山] 已複查 {n} 筆")
+
+
+# ======================================================================= 買動漫
+class MyAcg(Source):
+    key = "myacg"
+    marketplace = True
+    generic_only = True  # 站內搜尋每次約 30 秒，只跑一般關鍵字
+    timeout = 45
+
+    def search(self, q):
+        r = self.get(f"https://www.myacg.com.tw/goods_list_show_005.php?keyword_body={quote(q)}",
+                     headers={"Referer": "https://www.myacg.com.tw/goods_list.php"})
+        soup = BeautifulSoup(r.text, "html.parser")
+        out = []
+        for li in soup.select("#Goods_list_block > li[title]")[: self.limit]:
+            a = li.select_one('a[href*="goods_detail.php?gid="]')
+            if not a:
+                continue
+            gid = re.search(r"gid=(\d+)", a["href"]).group(1)
+            title = clean(li.get("title"))
+            price = li.select_one(".t_price")
+            img = li.select_one(".pic img")
+            sold_out = "已售完" in li.get_text() or "補貨中" in li.get_text()
+            if title_says_preorder(title) or MARKET_PRE_RE.search(title):
+                status = PRE
+            else:
+                status = OUT if sold_out else STOCK
+            it = Item("myacg", gid, title, f"https://www.myacg.com.tw/goods_detail.php?gid={gid}",
+                      to_int(price.get_text()) if price else None, status, "", img.get("src", "") if img else "")
+            it.verified = True  # 列表即賣場即時狀態
+            out.append(it)
+        return out
+
+
+# ======================================================================= 佳佳唱片行
+CCR_LISTS = [("PreGoods.php", "4"), ("PreGoods.php", "LP"), ("release.php", "4"), ("release.php", "LP")]  # 日文 / 黑膠
+
+
+class Ccr(Source):
+    key = "ccr"
+    catalog = True
+
+    def crawl(self):
+        out: dict[str, Item] = {}
+        for page, s in CCR_LISTS:
+            try:
+                r = self.get(f"https://www.ccr.com.tw/{page}?S={s}")
+            except Exception as e:  # noqa: BLE001
+                self.log(f"  [佳佳] {page}?S={s} 失敗: {e}")
+                continue
+            for tb in BeautifulSoup(r.text, "html.parser").select("tbody.item_row[data-id]"):
+                pid = tb["data-id"]
+                if pid in out:
+                    continue
+                art = tb.select_one(".item_artist")
+                ttl = tb.select_one(".item_article")
+                spec = clean(tb.select_one(".item_spec").get_text()) if tb.select_one(".item_spec") else ""
+                place = clean(tb.select_one(".item_place").get_text()) if tb.select_one(".item_place") else ""
+                pub = clean(tb.select_one(".item_publish").get_text()) if tb.select_one(".item_publish") else ""
+                title = clean(ttl.get("title") or ttl.get_text()) if ttl else ""
+                artist = clean(art.get_text()) if art else ""
+                it = Item("ccr", pid, f"{artist} {title} {spec}".strip(), f"https://www.ccr.com.tw/goods/{pid}",
+                          None, PRE if page == "PreGoods.php" else UNKNOWN, norm_date(pub), seller=artist)
+                it.fmt_hint = "vinyl" if s == "LP" or "LP" in spec.upper() else ("cd" if "CD" in spec.upper() else None)
+                it.note = place
+                out[pid] = it
+        return list(out.values())
+
+    def verify(self, items, state, limit):
+        n = 0
+        for it in items[:limit]:
+            try:
+                t = self.get(it.url).text
+            except SourceDown:
+                break
+            except Exception as e:  # noqa: BLE001
+                self.log(f"  [佳佳] 複查失敗 {it.pid}: {e}")
+                continue
+            n += 1
+            it.verified = True
+            txt = BeautifulSoup(t, "html.parser").get_text(" ", strip=True)
+            m = re.search(r"網路價\s*NT\$\s*:\s*([\d,]+)", txt)
+            if m:
+                it.price = to_int(m.group(1))
+            m = re.search(r'og:image" content="([^"]+)"', t)
+            if m:
+                it.image = m.group(1)
+            m = re.search(r"發行日期\s*:\s*([\d/]+)", txt)
+            if m:
+                it.release = norm_date(m.group(1)) or it.release
+            if "無庫存" in txt or "已售完" in txt:
+                it.status = OUT
+            elif "預購商品" in txt or is_future(it.release):
+                it.status = PRE
+            elif "放入購物車" in txt:
+                it.status = STOCK
+            if "庫存少量" in txt:
+                it.note = (it.note + "・庫存少量").strip("・")
+        self.log(f"  [佳佳] 已複查 {n} 筆")
+
+
+# ======================================================================= 小白兔唱片
+WWR_RE = re.compile(r'"name":"((?:[^"\\]|\\.)*)","type":"album","price":(\d+),"vipPrice":\d+,"stockQuantity":(-?\d+)'
+                    r'.*?"slug":"([^"]+)","images":\[("[^"]*")?')
+
+
+class Wwr(Source):
+    key = "wwr"
+    bare_franchise = True
+
+    def search(self, q):
+        t = self.get(f"https://wwr.com.tw/search?q={quote(q)}").text
+        t = t.replace('\\"', '"')
+        out, seen = [], set()
+        for name, price, qty, slug, img in WWR_RE.findall(t):
+            if slug in seen:
+                continue
+            seen.add(slug)
+            try:
+                name = json.loads(f'"{name}"')
+            except ValueError:
+                pass
+            qty = int(qty)
+            title = clean(name)
+            status = PRE if title_says_preorder(title) else (STOCK if qty > 0 else OUT)
+            it = Item("wwr", slug, title, f"https://wwr.com.tw/albums/{slug}", int(price), status,
+                      image=f"https://fs.wwr.com.tw/img/{img.strip(chr(34))}" if img else "")
+            it.stock, it.verified = max(qty, 0), True
+            it.fmt_hint = "vinyl" if "[Vinyl]" in title else ("cd" if "[CD]" in title else None)
+            out.append(it)
+            if len(out) >= self.limit * 2:
+                break
+        return out
+
+
+# ======================================================================= 五大唱片
+class FiveMusic(Source):
+    key = "fivemusic"
+    bare_franchise = True
+
+    def search(self, q):
+        r = self.post("https://www.5music.com.tw/search.asp", data={"sclass": "1", "stxt": q},
+                      headers={"Referer": "https://www.5music.com.tw/product_cat11.asp"})
+        r.encoding = "utf-8"
+        out = []
+        for box in BeautifulSoup(r.text, "html.parser").select(".record-box")[: self.limit]:
+            a = box.select_one('a[href*="cdno="]')
+            if not a:
+                continue
+            cdno = re.search(r"cdno=(\d+)", a["href"]).group(1)
+            artist = clean(box.select_one("h4").get_text()) if box.select_one("h4") else ""
+            title = clean(box.select_one(".des").get_text()) if box.select_one(".des") else ""
+            img = box.select_one("img")
+            src = (img.get("data-src") or img.get("src") or "") if img else ""
+            m = re.search(r"預購至([\d/]+)", title)
+            it = Item("fivemusic", cdno, f"{artist} {title}".strip(), f"https://www.5music.com.tw/CDList-C.asp?cdno={cdno}",
+                      None, PRE if m or title_says_preorder(title) else UNKNOWN,
+                      image=f"https://www.5music.com.tw/{src.lstrip('/')}" if src else "", seller=artist)
+            it.fmt_hint = "cd"  # 五大的品名通常只有黑膠會註明格式
+            out.append(it)
+        return out
+
+    def verify(self, items, state, limit):
+        n = 0
+        for it in items[:limit]:
+            try:
+                r = self.get(it.url)
+            except SourceDown:
+                break
+            except Exception as e:  # noqa: BLE001
+                self.log(f"  [五大] 複查失敗 {it.pid}: {e}")
+                continue
+            r.encoding = "utf-8"
+            txt = BeautifulSoup(r.text, "html.parser").get_text(" ", strip=True)
+            n += 1
+            it.verified = True
+            m = re.search(r"發行日期\s*([\d/]+)", txt)
+            if m:
+                it.release = norm_date(m.group(1))
+            if re.search(r"音樂類型\s*黑膠", txt):
+                it.fmt_hint = "vinyl"
+            if "目前無現貨" in txt:
+                it.status = PRE if is_future(it.release) else OUT
+            elif "目前有現貨" in txt or "現貨供應" in txt:
+                it.status = STOCK
+            elif is_future(it.release):
+                it.status = PRE
+        self.log(f"  [五大] 已複查 {n} 筆")
+
+
+SOURCES = {c.key: c for c in (Books, Eslite, PChome, GMusic, Candlelight, Shs, Ccr, Wwr, FiveMusic,
+                              Ruten, Yahoo, MyAcg)}

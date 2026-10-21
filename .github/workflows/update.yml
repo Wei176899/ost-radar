@@ -1,14 +1,13 @@
-name: 更新資料並部署網站
+name: Update & Deploy
 
 on:
   schedule:
-    - cron: "0 22 */3 * *"   # 每 3 天，台北時間早上 6 點（UTC 22:00）
-  workflow_dispatch:          # 可在 Actions 頁面手動執行
+    - cron: "0 22 */3 * *"
+  workflow_dispatch:
   push:
     branches: [main]
     paths: ["site/**", "!site/data/**"]
 
-# 預設不給任何權限，各 job 只開需要的
 permissions: {}
 
 concurrency:
@@ -21,24 +20,23 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 90
     permissions:
-      contents: write        # 只用來把新資料 commit 回 main
+      contents: write
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.12"
           cache: pip
-      - name: 安裝套件
+      - name: Install dependencies
         run: pip install -r requirements.txt
-      - name: 執行追蹤器
+      - name: Collect data
         run: python -m tracker
-      - name: 提交資料
+      - name: Commit data
         run: |
           git config user.name "ost-radar-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add site/data data/state.json
-          git diff --cached --quiet || git commit -m "data: $(TZ=Asia/Taipei date '+%Y-%m-%d %H:%M')"
-          # 執行期間 main 可能有新 commit（例如改網站），先同步再推送
+          git diff --cached --quiet || git commit -m "chore(data): update $(TZ=Asia/Taipei date '+%Y-%m-%d')"
           git pull --rebase origin main
           git push
 
@@ -48,8 +46,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pages: write           # 發布到 GitHub Pages
-      id-token: write        # Pages 部署驗證用（OIDC），不是金鑰
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -62,17 +60,17 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-      - name: 還原封面縮圖快取
+      - name: Restore thumbnail cache
         uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: site/img
           key: thumbs-${{ github.run_id }}
           restore-keys: thumbs-
-      - name: 產生封面縮圖
+      - name: Build thumbnails
         run: |
           pip install -r requirements.txt
           python -m tracker.thumbs
-      - name: 儲存封面縮圖快取
+      - name: Save thumbnail cache
         uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: site/img

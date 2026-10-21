@@ -133,6 +133,8 @@ WESTERN_RE = re.compile(
     r"KPOP|獵魔女團|Simpsons|辛普森|Shrek|史瑞克|Spider-Verse|蜘蛛人|Looney|Hanna-Barbera|"
     r"Nightmare Before|聖誕夜驚魂|Trolls|魔髮精靈|Peanuts|史努比|Snoopy|Fantastic Beasts|Harry Potter|"
     r"哈利波特|Star Wars|星際大戰|Minecraft|Hollow Knight|Stray|Syberia|Last of Us|最後生還者|"
+    r"小熊維尼|Winnie the Pooh|玩具總動員|Toy Story|獅子王|Lion King|小美人魚|Little Mermaid|星際寶貝|Lilo|"
+    r"可可夜總會|Coco|腦筋急轉彎|Inside Out|查理布朗|Charlie Brown|芝麻街|Sesame|海綿寶寶|SpongeBob|"
     r"Grand Theft Auto|俠盜獵車|Witcher|巫師|Fallout|異塵餘生|Halo|Doom|Diablo|暗黑破壞神|Assassin|刺客教條|"
     r"League of Legends|英雄聯盟|Overwatch|鬥陣特攻|Undertale|Hades|Celeste|Cuphead|茶杯頭|Stardew", re.I)
 

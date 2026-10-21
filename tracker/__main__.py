@@ -77,7 +77,7 @@ def classify(it: Item, fr: Franchises) -> bool:
     it.kind = detect_kind(it.title if it.franchise else text, fr.kinds.get(it.franchise))
     it.sub = detect_sub(it.title)
     it.tags = detect_tags(f"{it.title} {it.note}")
-    if it.source in ("ruten", "yahoo") and "代購" not in it.tags and it.status == PRE:
+    if SOURCES[it.source].marketplace and "代購" not in it.tags and it.status == PRE:
         it.tags.append("代購")
     it.jp = is_japanese(text, it.franchise or None)
     return True
@@ -238,6 +238,9 @@ def main():
         for k, fut in futs.items():
             found, err = fut.result()
             errors[k] = err
+            src = next(s for s in srcs if s.key == k)
+            if not found and not src.down:
+                src.down = "本次未取得資料"  # 交給後面沿用上次資料；若上次也沒有就不影響
             results.update(found)
             log(f"  ✔ {SOURCE_META[k]['name']}：{len(found)} 筆（失敗 {err} 次）")
 
@@ -263,7 +266,7 @@ def main():
     apply_history(items, state, now)
     order = {PRE: 0, STOCK: 1, UNKNOWN: 2, OUT: 3}
     items.sort(key=lambda i: (i.release or "", i.first_seen), reverse=True)
-    items.sort(key=lambda i: (not i.flags, order.get(i.status, 9), i.source in ("ruten", "yahoo")))
+    items.sort(key=lambda i: (not i.flags, order.get(i.status, 9), SOURCES[i.source].marketplace))
 
     news = []
     if not args.no_news:
@@ -300,6 +303,7 @@ def main():
         "formats": {f: count(lambda i, f=f: i.fmt == f) for f in FORMAT_LABEL},
         "verified": count(lambda i: i.verified),
         "franchises": sorted({i.franchise for i in items if i.franchise}),
+        "links": cfg.get("links", []),
     }
     (OUT_DIR / "meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=1), encoding="utf-8")
     log(f"\n完成（{meta['seconds']} 秒）：{len(items)} 筆｜{meta['status']}｜{meta['formats']}｜"
