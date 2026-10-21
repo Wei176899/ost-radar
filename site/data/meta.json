@@ -1,8 +1,8 @@
 {
- "generated": "2026-10-20 21:51",
- "seconds": 1085,
+ "generated": "2026-10-21 10:12",
+ "seconds": 928,
  "total": 4026,
- "news": 238,
+ "news": 241,
  "sources": [
   {
    "key": "books",
@@ -10,7 +10,8 @@
    "type": "書店電商",
    "home": "https://www.books.com.tw/",
    "count": 139,
-   "errors": 0
+   "errors": 6,
+   "down": "連續 6 次連線失敗（可能封鎖海外連線）"
   },
   {
    "key": "eslite",
@@ -18,7 +19,8 @@
    "type": "書店電商",
    "home": "https://www.eslite.com/",
    "count": 224,
-   "errors": 0
+   "errors": 0,
+   "down": ""
   },
   {
    "key": "pchome",
@@ -26,7 +28,8 @@
    "type": "綜合電商",
    "home": "https://24h.pchome.com.tw/",
    "count": 0,
-   "errors": 0
+   "errors": 0,
+   "down": ""
   },
   {
    "key": "ruten",
@@ -34,7 +37,8 @@
    "type": "拍賣",
    "home": "https://www.ruten.com.tw/",
    "count": 1937,
-   "errors": 0
+   "errors": 0,
+   "down": ""
   },
   {
    "key": "yahoo",
@@ -42,7 +46,8 @@
    "type": "拍賣",
    "home": "https://tw.bid.yahoo.com/",
    "count": 1312,
-   "errors": 0
+   "errors": 0,
+   "down": ""
   },
   {
    "key": "candlelight",
@@ -50,7 +55,8 @@
    "type": "唱片行",
    "home": "https://www.candlelightrecords.tw/",
    "count": 328,
-   "errors": 0
+   "errors": 0,
+   "down": "連續 6 次連線失敗（可能封鎖海外連線）"
   },
   {
    "key": "gmusic",
@@ -58,22 +64,23 @@
    "type": "唱片行",
    "home": "https://www.g-music.com.tw/",
    "count": 86,
-   "errors": 0
+   "errors": 0,
+   "down": ""
   }
  ],
  "status": {
-  "預購": 110,
-  "現貨": 3465,
-  "待確認": 139,
-  "缺貨": 312
+  "預購": 82,
+  "現貨": 3318,
+  "待確認": 0,
+  "缺貨": 159
  },
  "formats": {
-  "vinyl": 3176,
-  "7inch": 142,
-  "cd": 425,
-  "cassette": 283
+  "vinyl": 2859,
+  "7inch": 130,
+  "cd": 289,
+  "cassette": 281
  },
- "verified": 3887,
+ "verified": 3559,
  "franchises": [
   "AKIRA",
   "BanG Dream!",
