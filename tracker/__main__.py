@@ -32,6 +32,32 @@ OUT_DIR = ROOT / "site" / "data"
 CFG_PATH = Path(__file__).resolve().parent / "config.json"
 
 
+def dump_lines(obj) -> str:
+    """一筆資料一行的 JSON：仍是合法 JSON，但 git 只會記錄有變動的那幾行，repo 成長慢很多。"""
+    one = lambda v: json.dumps(v, ensure_ascii=False, separators=(",", ":"))  # noqa: E731
+    nl = "\n"
+    if isinstance(obj, list):
+        return "[" + nl + ("," + nl).join(one(v) for v in obj) + nl + "]" + nl
+    if isinstance(obj, dict):
+        parts = []
+        for k, v in obj.items():
+            if isinstance(v, dict) and len(v) > 20:  # 大型對照表（例如 state 的 items）逐筆換行
+                inner = ("," + nl).join(one(kk) + ":" + one(vv) for kk, vv in v.items())
+                parts.append(one(k) + ":{" + nl + inner + nl + "}")
+            else:
+                parts.append(one(k) + ":" + one(v))
+        return "{" + nl + ("," + nl).join(parts) + nl + "}" + nl
+    return one(obj) + nl
+
+
+def health_check(rows: list[dict], prev_rows: list[dict], log) -> bool:
+    """資料健康檢查：總筆數驟減代表多個通路同時改版或被封鎖，此時不覆蓋現有資料。"""
+    if len(prev_rows) >= 500 and len(rows) < len(prev_rows) * 0.5:
+        log(f"⚠ 健康檢查未通過：本次 {len(rows)} 筆，上次 {len(prev_rows)} 筆（減少超過一半），保留現有資料")
+        return False
+    return True
+
+
 def load_json(p: Path, default):
     try:
         return json.loads(p.read_text(encoding="utf-8"))
@@ -279,7 +305,6 @@ def main():
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     STATE_PATH.parent.mkdir(exist_ok=True)
     state["last_run"] = now
-    STATE_PATH.write_text(json.dumps(state, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     rows = [to_row(i) for i in items]
     # 本次連不上的通路：沿用上次的資料（標示未更新），避免網站上整個通路消失
     down = {s.key: s.down for s in srcs if s.down}
@@ -296,10 +321,12 @@ def main():
         rows += [r for r in prev if r.get("s") not in enabled and r.get("s") in SOURCES]
     all_keys = [k for k, v in cfg.get("sources", {}).items() if v and k in SOURCES] if args.merge else enabled
     prev_src = {x["key"]: x for x in prev_meta.get("sources", [])}
-    (OUT_DIR / "items.json").write_text(json.dumps(rows, ensure_ascii=False,
-                                                   separators=(",", ":")), encoding="utf-8")
-    (OUT_DIR / "news.json").write_text(json.dumps(news, ensure_ascii=False, separators=(",", ":")),
-                                       encoding="utf-8")
+    rows.sort(key=lambda r: r["id"])  # 固定順序：每天的 diff 只會出現實際變動的商品（網站端自行排序）
+    if not health_check(rows, load_json(OUT_DIR / "items.json", []), log):
+        sys.exit(2)  # 讓排程顯示失敗（GitHub 會寄通知），網站維持上一版資料
+    STATE_PATH.write_text(dump_lines(state), encoding="utf-8")
+    (OUT_DIR / "items.json").write_text(dump_lines(rows), encoding="utf-8")
+    (OUT_DIR / "news.json").write_text(dump_lines(news), encoding="utf-8")
     write_csv(rows, OUT_DIR / "items.csv")
     count = lambda pred: sum(1 for r in rows if pred(r))  # noqa: E731
     meta = {

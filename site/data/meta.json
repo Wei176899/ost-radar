@@ -1,6 +1,6 @@
 {
- "generated": "2026-10-22 20:49",
- "seconds": 15,
+ "generated": "2026-10-22 21:09",
+ "seconds": 45,
  "total": 5110,
  "news": 243,
  "sources": [
@@ -29,7 +29,7 @@
    "home": "https://24h.pchome.com.tw/",
    "count": 0,
    "errors": 0,
-   "down": ""
+   "down": "本次未取得資料"
   },
   {
    "key": "gmusic",

@@ -112,7 +112,9 @@
     }
     $$("#stats dd").forEach((dd) => countUp(dd, n[dd.dataset.k]));
     countUp($("#heroCount"), n.pre);
-    const pics = pre.filter((i) => i.i && !MARKET.has(i.s)).slice(0, 3);
+    // 首頁封面：最近即將發售的預購（資料檔依 id 排序，這裡自行挑選）
+    const pics = pre.filter((i) => i.i && !MARKET.has(i.s) && i.r && i.r >= TODAY)
+      .sort((a, b) => a.r.localeCompare(b.r)).slice(0, 3);
     const fill = pics.length < 3 ? jp.filter((i) => i.i && !MARKET.has(i.s) && i.st === "現貨").slice(0, 3 - pics.length) : [];
     $("#heroSleeves").innerHTML = [...pics, ...fill].map((i) =>
       img(i.th || i.i, "", "ok", { eager: true, fallback: i.th ? i.i : "" }).replace("<img ", "<img data-ph ")).join("");
