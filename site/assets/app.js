@@ -288,7 +288,15 @@
     $("#filterBadge").hidden = !active; $("#filterBadge").textContent = active;
   }
 
-  function applyFilters() {
+  // 篩選後讓結果從搜尋列正下方開始，避免內容變短時頁面跳動、搜尋列被捲走
+  function keepAnchor() {
+    if ($("#filterPanel").classList.contains("open") && isMobile()) return;
+    const bar = $("#filters"), stickyTop = parseFloat(getComputedStyle(bar).top) || 0;
+    const target = $(".result-row").getBoundingClientRect().top + scrollY - stickyTop - bar.offsetHeight - 6;
+    if (scrollY > target + 1) window.scrollTo({ top: target, behavior: "instant" });
+  }
+  const isMobile = () => matchMedia("(max-width: 820px)").matches;
+  function applyFilters({ anchor = true } = {}) {
     filtered = ITEMS.filter((i) => match(i)).sort(SORTS[F.sort] || SORTS.smart);
     cursor = 0;
     $("#grid").innerHTML = "";
@@ -299,12 +307,22 @@
     $("#applyCount").textContent = fmtN(filtered.length);
     renderControls();
     writeURL();
+    if (anchor) keepAnchor();
   }
+  // 前 3 批自動載入，之後改用按鈕，讓下方的通路與頁尾仍然到得了
+  const AUTO = PAGE * 3;
   function more() {
     if (cursor >= filtered.length) return;
     const slice = filtered.slice(cursor, cursor + PAGE);
     cursor += slice.length;
     $("#grid").insertAdjacentHTML("beforeend", slice.map((i) => card(i)).join(""));
+    const left = filtered.length - cursor, btn = $("#moreBtn");
+    btn.hidden = left <= 0 || cursor < AUTO;
+    btn.textContent = `顯示更多・還有 ${fmtN(left)} 筆`;
+    // 載入後若底部仍在視窗附近，繼續補到自動上限（IntersectionObserver 不會重複觸發）
+    if (cursor < AUTO && left > 0) requestAnimationFrame(() => {
+      if ($("#sentinel").getBoundingClientRect().top < innerHeight + 800) more();
+    });
   }
 
   function bindCatalog() {
@@ -337,8 +355,12 @@
       applyFilters();
     });
     const panel = $("#filterPanel"), openBtn = $("#filterOpen");
-    const setPanel = (open) => {
-      const mobile = matchMedia("(max-width: 820px)").matches;
+    const setPanel = (open, { fromPop = false } = {}) => {
+      const mobile = isMobile();
+      if (mobile && !fromPop) {
+        if (open && !panel.classList.contains("open")) history.pushState({ panel: 1 }, "");
+        else if (!open && history.state?.panel) { history.back(); return; }
+      }
       panel.classList.toggle("open", open); openBtn.setAttribute("aria-expanded", open);
       $("#filters").classList.toggle("panel-open", open && mobile);
       $("#fpBackdrop").hidden = !(open && mobile);
@@ -346,14 +368,16 @@
       if (open && mobile) $("#filterClose").focus({ preventScroll: true });
     };
     $("#fpBackdrop").addEventListener("click", () => setPanel(false));
+    addEventListener("popstate", () => { if (panel.classList.contains("open")) setPanel(false, { fromPop: true }); });
     openBtn.addEventListener("click", () => setPanel(!panel.classList.contains("open")));
     $("#filterClose").addEventListener("click", () => setPanel(false));
-    $("#applyBtn").addEventListener("click", () => { setPanel(false); $("#catalog").scrollIntoView({ behavior: reduce ? "auto" : "smooth" }); });
+    $("#applyBtn").addEventListener("click", () => { setPanel(false); setTimeout(keepAnchor, 150); });
     document.addEventListener("keydown", (e) => { if (e.key === "Escape" && panel.classList.contains("open")) setPanel(false); });
 
     $("#heroSearch").addEventListener("submit", (e) => {
       e.preventDefault();
-      F.q = $("#heroQ").value.trim(); $("#q").value = F.q; applyFilters();
+      F.q = $("#heroQ").value.trim(); $("#q").value = F.q; applyFilters({ anchor: false });
+      $("#heroQ").blur();
       $("#catalog").scrollIntoView({ behavior: reduce ? "auto" : "smooth" });
     });
     document.addEventListener("keydown", (e) => {
@@ -362,8 +386,9 @@
       $("#filters").scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
     });
 
-    new IntersectionObserver((es) => es[0].isIntersecting && more(), { rootMargin: "800px" }).observe($("#sentinel"));
-    applyFilters();
+    new IntersectionObserver((es) => es[0].isIntersecting && cursor < AUTO && more(), { rootMargin: "800px" }).observe($("#sentinel"));
+    $("#moreBtn").addEventListener("click", () => more());
+    applyFilters({ anchor: false });
   }
 
   /* ------------------------------------------------------------ detail sheet */
@@ -394,7 +419,7 @@
     .replace(/黑膠|彩膠|唱片|LP|CD|限定|初回|生產|生産|盤|預購|代購|代訂|現貨|全新|日版|進口|\d+\s*(?:吋|寸)/gi, " ")
     .replace(/\s+/g, " ").trim().slice(0, 80);
   let lastFocus = null;
-  function openSheet(it) {
+  function openSheet(it, { push = true } = {}) {
     lastFocus = document.activeElement;
     const st = ST_CLS[it.st] || "unk";
     const ver = it.v
@@ -431,7 +456,8 @@
           <span><span class="at">${esc(o.t)}</span><span class="as">${esc(srcName(o.s))}</span></span>
           <span class="ap">${o.p ? "$" + fmtN(o.p) : "—"}<span>${esc(o.st)}</span></span></a>`).join("")}</div>` : ""}`;
     const u = new URL(location.href); u.searchParams.set("item", it.id); u.hash = "";
-    history.replaceState(null, "", u);
+    if ($("#sheet").hidden && push) history.pushState({ sheet: 1 }, "", u);   // 返回鍵可關閉
+    else history.replaceState(history.state, "", u);
     current = it;
     const sheet = $("#sheet");
     sheet.hidden = false; document.body.classList.add("lock");
@@ -451,14 +477,33 @@
       else { await navigator.clipboard.writeText(url); toast("已複製連結"); }
     } catch (e) { /* 使用者取消分享 */ }
   }
-  function closeSheet() {
+  function closeSheet({ fromPop = false } = {}) {
     if ($("#sheet").hidden) return;
+    if (!fromPop && history.state?.sheet) { history.back(); return; }  // 交給 popstate 收尾
     const u = new URL(location.href); u.searchParams.delete("item"); history.replaceState(null, "", u);
+    $(".sheet-card").style.transform = "";
     current = null;
     $("#sheet").hidden = true; document.body.classList.remove("lock");
     lastFocus?.focus?.({ preventScroll: true });
   }
   function bindSheet() {
+    addEventListener("popstate", () => { if (!$("#sheet").hidden) closeSheet({ fromPop: true }); });
+    // 手機：在詳細頁頂端往下滑即可關閉
+    const card = $(".sheet-card");
+    let y0 = null, dy = 0;
+    card.addEventListener("touchstart", (e) => { y0 = card.scrollTop <= 0 ? e.touches[0].clientY : null; dy = 0; }, { passive: true });
+    card.addEventListener("touchmove", (e) => {
+      if (y0 == null) return;
+      dy = Math.max(0, e.touches[0].clientY - y0);
+      if (dy > 0) card.style.transform = `translateY(${dy}px)`;
+    }, { passive: true });
+    card.addEventListener("touchend", () => {
+      if (y0 == null) return;
+      card.style.transition = "transform .25s ease";
+      if (dy > 110) closeSheet(); else card.style.transform = "";
+      setTimeout(() => (card.style.transition = ""), 260);
+      y0 = null;
+    });
     document.addEventListener("click", (e) => {
       const c = e.target.closest(".card[data-i], .alt-row[data-i]");
       if (c && !c.closest(".sb-hero")) { e.preventDefault(); openSheet(ITEMS[+c.dataset.i]); return; }
@@ -467,7 +512,7 @@
       const fr = e.target.closest("a[data-fr]");
       if (fr) {
         e.preventDefault(); closeSheet();
-        F.fr = fr.dataset.fr; $("#frSel").value = F.fr; F.onlyJp = true; applyFilters();
+        F.fr = fr.dataset.fr; $("#frSel").value = F.fr; F.onlyJp = true; applyFilters({ anchor: false });
         $("#catalog").scrollIntoView({ behavior: reduce ? "auto" : "smooth" });
       }
     });
@@ -485,28 +530,54 @@
 
   /* ------------------------------------------------------------ stores */
   function renderStores() {
-    $("#storeList").innerHTML = (META.sources || []).map((s) => `
-      <li><button class="store-row" type="button" data-src="${esc(s.key)}" aria-label="只看 ${esc(s.name)} 的商品">
-        <span class="sn">${esc(s.name)}${s.down ? ` <span class="se">本次未更新</span>` : s.errors ? ` <span class="se">${s.errors} 次讀取失敗</span>` : ""}</span>
-        <span class="st">${esc(s.type)}</span>
-        <span class="sc">${fmtN(s.count)}</span>
-      </button><a class="store-ext" href="${esc(safeUrl(s.home))}" ${ext} aria-label="開啟 ${esc(s.name)} 網站">↗</a></li>`).join("") +
-      (META.links || []).map((l) => `
-      <li><a class="store-row" href="${esc(safeUrl(l.home))}" ${ext}>
-        <span class="sn">${esc(l.name)}</span><span class="st">${esc(l.type)}</span><span class="sc">—</span>
-      </a><a class="store-ext" href="${esc(safeUrl(l.home))}" ${ext} aria-label="開啟 ${esc(l.name)} 網站">↗</a></li>`).join("");
+    const groups = [["唱片行", "唱片行"], ["書店電商", "電商"], ["綜合電商", "電商"], ["拍賣", "拍賣"]];
+    const by = {};
+    (META.sources || []).forEach((s) => {
+      const g = (groups.find(([t]) => t === s.type) || [s.type, s.type])[1];
+      (by[g] ||= []).push(s);
+    });
+    const tile = (s) => `
+      <li class="store">
+        <button class="store-row" type="button" data-src="${esc(s.key)}" aria-label="只看 ${esc(s.name)} 的商品">
+          <span class="sn">${esc(s.name)}</span>
+          <span class="sc">${fmtN(s.count)}</span>
+          ${s.down ? `<span class="se">未更新</span>` : ""}
+        </button>
+        <a class="store-ext" href="${esc(safeUrl(s.home))}" ${ext} aria-label="開啟 ${esc(s.name)} 網站">↗</a>
+      </li>`;
+    const ref = (l) => `
+      <li class="store">
+        <a class="store-row" href="${esc(safeUrl(l.home))}" ${ext}><span class="sn">${esc(l.name)}</span><span class="sc">—</span></a>
+        <a class="store-ext" href="${esc(safeUrl(l.home))}" ${ext} aria-label="開啟 ${esc(l.name)} 網站">↗</a>
+      </li>`;
+    const sections = ["唱片行", "電商", "拍賣"].filter((g) => by[g]).map((g) =>
+      `<div class="store-group"><h3>${g}</h3><ul>${by[g].map(tile).join("")}</ul></div>`);
+    if ((META.links || []).length)
+      sections.push(`<div class="store-group"><h3>資料庫</h3><ul>${META.links.map(ref).join("")}</ul></div>`);
+    $("#storeList").innerHTML = sections.join("");
     $("#storeList").addEventListener("click", (e) => {
-      const b = e.target.closest(".store-row"); if (!b) return;
-      F.src = new Set([b.dataset.src]); F.onlyJp = true; $("#onlyJp").checked = true; applyFilters();
+      const b = e.target.closest("button.store-row"); if (!b) return;
+      F.src = new Set([b.dataset.src]); F.onlyJp = true; $("#onlyJp").checked = true; applyFilters({ anchor: false });
       $("#catalog").scrollIntoView({ behavior: reduce ? "auto" : "smooth" });
     });
   }
 
   /* ------------------------------------------------------------ chrome */
   function bindChrome() {
-    const nav = $(".nav");
-    const onScroll = () => nav.classList.toggle("scrolled", scrollY > 8);
+    const nav = $(".nav"), topBtn = $("#toTop");
+    let lastY = scrollY;
+    const onScroll = () => {
+      const y = scrollY;
+      nav.classList.toggle("scrolled", y > 8);
+      if (isMobile()) {
+        if (y > 480 && y > lastY + 6) document.body.classList.add("nav-hidden");
+        else if (y < lastY - 6 || y < 200) document.body.classList.remove("nav-hidden");
+      }
+      topBtn.hidden = y < 1600;
+      lastY = y;
+    };
     addEventListener("scroll", onScroll, { passive: true }); onScroll();
+    topBtn.addEventListener("click", () => scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" }));
     $("#themeBtn").addEventListener("click", () => {
       const t = document.documentElement.dataset.theme === "light" ? "dark" : "light";
       document.documentElement.dataset.theme = t;
@@ -568,6 +639,6 @@
     bindCatalog(); bindSheet();
     const id = new URLSearchParams(location.search).get("item");
     const hit = id && ITEMS.find((i) => i.id === id);
-    if (hit) openSheet(hit);
+    if (hit) openSheet(hit, { push: false });
   });
 })();

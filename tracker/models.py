@@ -21,6 +21,7 @@ SOURCE_META = {
     "ccr": {"name": "佳佳唱片行", "type": "唱片行", "home": "https://www.ccr.com.tw/"},
     "wwr": {"name": "小白兔唱片", "type": "唱片行", "home": "https://wwr.com.tw/"},
     "fivemusic": {"name": "五大唱片", "type": "唱片行", "home": "https://www.5music.com.tw/"},
+    "rottenblues": {"name": "爛調唱片", "type": "唱片行", "home": "https://www.rottenblues.com/"},
     "ruten": {"name": "露天拍賣", "type": "拍賣", "home": "https://www.ruten.com.tw/"},
     "yahoo": {"name": "Yahoo 拍賣", "type": "拍賣", "home": "https://tw.bid.yahoo.com/"},
     "myacg": {"name": "買動漫", "type": "拍賣", "home": "https://www.myacg.com.tw/"},

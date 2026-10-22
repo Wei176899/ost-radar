@@ -188,18 +188,19 @@ def to_row(it: Item) -> dict:
     }
 
 
-def write_csv(items: list[Item], path: Path):
+def write_csv(rows: list[dict], path: Path):
     with path.open("w", newline="", encoding="utf-8-sig") as f:
         w = csv.writer(f)
         w.writerow(["通路", "狀態", "已複查", "庫存", "格式", "類型", "作品", "標籤", "品名", "價格", "發售日",
                     "首次發現", "動態", "連結"])
-        for it in items:
-            title = redact(it.title)
+        for r in rows:
+            title = r["t"]
             if title[:1] in "=+-@":
                 title = "'" + title  # 避免 Excel 把品名當公式執行（CSV injection）
-            w.writerow([SOURCE_META[it.source]["name"], it.status, "Y" if it.verified else "", it.stock or "",
-                        FORMAT_LABEL.get(it.fmt, it.fmt), f"{it.kind}/{it.sub}", it.franchise, " ".join(it.tags),
-                        title, it.price or "", it.release, it.first_seen[:10], " ".join(it.flags), safe_url(it.url)])
+            w.writerow([SOURCE_META.get(r["s"], {}).get("name", r["s"]), r["st"], "Y" if r["v"] else "",
+                        r["q"] if r["q"] is not None else "", FORMAT_LABEL.get(r["f"], r["f"]),
+                        f"{r['k']}/{r['sb']}", r["fr"], " ".join(r["tg"]), title, r["p"] or "", r["r"],
+                        r["fs"], " ".join(r["fl"]), r["u"]])
 
 
 def main():
@@ -208,6 +209,7 @@ def main():
     ap.add_argument("--only")
     ap.add_argument("--no-news", action="store_true")
     ap.add_argument("--no-verify", action="store_true")
+    ap.add_argument("--merge", action="store_true", help="只更新指定通路，其餘通路沿用現有資料")
     try:
         sys.stdout.reconfigure(encoding="utf-8")
     except AttributeError:
@@ -268,8 +270,9 @@ def main():
     items.sort(key=lambda i: (i.release or "", i.first_seen), reverse=True)
     items.sort(key=lambda i: (not i.flags, order.get(i.status, 9), SOURCES[i.source].marketplace))
 
-    news = []
-    if not args.no_news:
+    if args.no_news:
+        news = load_json(OUT_DIR / "news.json", [])  # 不更新新聞時保留現有內容
+    else:
         log("收集發售新聞…")
         news = news_mod.collect(cfg, fr, log)
 
@@ -287,22 +290,30 @@ def main():
                 if r.get("s") in down and r.get("id") not in have]
         rows += kept
         log(f"沿用上次資料 {len(kept)} 筆：" + "、".join(f"{SOURCE_META[k]['name']}（{v}）" for k, v in down.items()))
+    prev_meta = load_json(OUT_DIR / "meta.json", {})
+    if args.merge:  # 未執行的通路完整保留
+        prev = load_json(OUT_DIR / "items.json", [])
+        rows += [r for r in prev if r.get("s") not in enabled and r.get("s") in SOURCES]
+    all_keys = [k for k, v in cfg.get("sources", {}).items() if v and k in SOURCES] if args.merge else enabled
+    prev_src = {x["key"]: x for x in prev_meta.get("sources", [])}
     (OUT_DIR / "items.json").write_text(json.dumps(rows, ensure_ascii=False,
                                                    separators=(",", ":")), encoding="utf-8")
     (OUT_DIR / "news.json").write_text(json.dumps(news, ensure_ascii=False, separators=(",", ":")),
                                        encoding="utf-8")
-    write_csv(items, OUT_DIR / "items.csv")
-    count = lambda pred: sum(1 for i in items if pred(i))  # noqa: E731
+    write_csv(rows, OUT_DIR / "items.csv")
+    count = lambda pred: sum(1 for r in rows if pred(r))  # noqa: E731
     meta = {
         "generated": now, "seconds": round(time.time() - t0),
         "total": len(rows), "news": len(news),
         "sources": [{"key": k, **SOURCE_META[k],
                      "count": sum(1 for r in rows if r["s"] == k),
-                     "errors": errors.get(k, 0), "down": down.get(k, "")} for k in enabled],
-        "status": {s: count(lambda i, s=s: i.status == s) for s in (PRE, STOCK, UNKNOWN, OUT)},
-        "formats": {f: count(lambda i, f=f: i.fmt == f) for f in FORMAT_LABEL},
-        "verified": count(lambda i: i.verified),
-        "franchises": sorted({i.franchise for i in items if i.franchise}),
+                     "errors": errors.get(k, prev_src.get(k, {}).get("errors", 0)),
+                     "down": down.get(k, "") if k in enabled else prev_src.get(k, {}).get("down", "")}
+                    for k in all_keys],
+        "status": {s: count(lambda r, s=s: r["st"] == s) for s in (PRE, STOCK, UNKNOWN, OUT)},
+        "formats": {f: count(lambda r, f=f: r["f"] == f) for f in FORMAT_LABEL},
+        "verified": count(lambda r: r["v"]),
+        "franchises": sorted({r["fr"] for r in rows if r.get("fr")}),
         "links": cfg.get("links", []),
     }
     (OUT_DIR / "meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=1), encoding="utf-8")

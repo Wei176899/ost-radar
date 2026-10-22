@@ -10,7 +10,7 @@
 商品狀態以各通路的庫存資訊或商品頁為準，並附上相關的發售消息。
 
 收錄通路：博客來、誠品線上、PChome 24h、玫瑰大眾、燭光唱片、山海山唱片行、佳佳唱片行、
-小白兔唱片、五大唱片、露天拍賣、Yahoo 拍賣、買動漫。版本資料另可連結至 Discogs 查詢。
+小白兔唱片、五大唱片、爛調唱片、露天拍賣、Yahoo 拍賣、買動漫。版本資料另可連結至 Discogs 查詢。
 
 ## 架構
 
@@ -25,7 +25,8 @@ data/       歷史狀態
 
 ```bash
 pip install -r requirements.txt
-python -m tracker
+python -m tracker                                  # 全部通路
+python -m tracker --only books,candlelight --merge # 只更新部分通路
 python -m tracker.thumbs
 python -m http.server 8000 --bind 127.0.0.1 --directory site
 ```

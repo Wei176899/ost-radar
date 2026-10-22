@@ -734,5 +734,38 @@ class FiveMusic(Source):
         self.log(f"  [五大] 已複查 {n} 筆")
 
 
+# ======================================================================= 爛調唱片（Shopify）
+class RottenBlues(Source):
+    key = "rottenblues"
+    catalog = True
+    host = "https://www.rottenblues.com"
+
+    def crawl(self):
+        out = []
+        for page in range(1, 60):
+            prods = self.get(f"{self.host}/products.json?limit=250&page={page}").json().get("products", [])
+            if not prods:
+                break
+            for p in prods:
+                tags = p.get("tags") or []
+                ptype = p.get("product_type") or ""
+                title = clean(p.get("title"))
+                variants = p.get("variants") or [{}]
+                available = any(v.get("available") for v in variants)
+                pre = any("預購" in t or "Pre-order" in t for t in tags) or title_says_preorder(title)
+                status = (PRE if available else OUT) if pre else (STOCK if available else OUT)
+                img = (p.get("images") or [{}])[0].get("src", "") if p.get("images") else ""
+                it = Item("rottenblues", str(p["id"]), title, f"{self.host}/products/{quote(p.get('handle', ''))}",
+                          to_int(variants[0].get("price")), status, image=img, seller=clean(p.get("vendor")))
+                it.verified = True  # 商品資料即時含是否可購買
+                it.extra = f"{ptype} {' '.join(tags)}"
+                it.is_ost = any("Soundtrack" in t or "Anime" in t for t in tags)
+                it.fmt_hint = ("vinyl" if re.search(r"黑膠|Vinyl|LP", ptype, re.I)
+                               else "cassette" if re.search(r"卡帶|Cassette", ptype, re.I)
+                               else "cd" if "CD" in ptype.upper() else None)
+                out.append(it)
+        return out
+
+
 SOURCES = {c.key: c for c in (Books, Eslite, PChome, GMusic, Candlelight, Shs, Ccr, Wwr, FiveMusic,
-                              Ruten, Yahoo, MyAcg)}
+                              RottenBlues, Ruten, Yahoo, MyAcg)}
