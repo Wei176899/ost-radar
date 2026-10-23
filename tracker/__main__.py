@@ -21,6 +21,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 from . import news as news_mod
+from .compare import group as group_offers
 from .classify import (FORMAT_LABEL, Franchises, detect_format, detect_kind, detect_sub, detect_tags,
                        disc_count, is_japanese, is_relevant)
 from .models import OUT, PRE, SOURCE_META, STOCK, TODAY, TW, UNKNOWN, Item
@@ -211,6 +212,7 @@ def to_row(it: Item) -> dict:
         "n": redact(it.note), "sl": redact(it.seller),
         "f": it.fmt, "d": it.discs, "k": it.kind, "sb": it.sub, "tg": it.tags, "fr": it.franchise,
         "jp": it.jp, "fs": it.first_seen[:10], "fl": it.flags,
+        "so": it.sold, "dl": it.deadline, "bc": it.barcode,
     }
 
 
@@ -321,6 +323,7 @@ def main():
         rows += [r for r in prev if r.get("s") not in enabled and r.get("s") in SOURCES]
     all_keys = [k for k, v in cfg.get("sources", {}).items() if v and k in SOURCES] if args.merge else enabled
     prev_src = {x["key"]: x for x in prev_meta.get("sources", [])}
+    group_offers(rows, markets={k for k, c in SOURCES.items() if c.marketplace})  # 比價分組（含沿用的舊資料）
     rows.sort(key=lambda r: r["id"])  # 固定順序：每天的 diff 只會出現實際變動的商品（網站端自行排序）
     if not health_check(rows, load_json(OUT_DIR / "items.json", []), log):
         sys.exit(2)  # 讓排程顯示失敗（GitHub 會寄通知），網站維持上一版資料

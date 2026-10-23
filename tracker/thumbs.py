@@ -30,20 +30,44 @@ SIZE = 360                              # 卡片約 190px，2 倍螢幕剛好清
 QUALITY = 72
 UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
                     "(KHTML, like Gecko) Chrome/130.0 Safari/537.36"}
+MAX_BYTES = 8 * 1024 * 1024             # 單張原圖上限，避免異常大檔佔用記憶體
+Image.MAX_IMAGE_PIXELS = 40_000_000     # 超過即視為解壓縮炸彈（Pillow 會丟出例外）
+ALLOWED_FORMATS = {"JPEG", "PNG", "WEBP", "GIF"}
 
 
 def key_of(url: str) -> str:
     return hashlib.sha1(url.encode("utf-8")).hexdigest()[:16]
 
 
+def download(url: str) -> bytes | None:
+    """只接受 https 圖片，邊下載邊檢查大小。"""
+    if not url.startswith("https://"):
+        return None
+    with requests.get(url, headers=UA, timeout=12, stream=True) as r:
+        r.raise_for_status()
+        if not r.headers.get("Content-Type", "image/").lower().startswith("image/"):
+            return None
+        if int(r.headers.get("Content-Length") or 0) > MAX_BYTES:
+            return None
+        buf = bytearray()
+        for chunk in r.iter_content(64 * 1024):
+            buf += chunk
+            if len(buf) > MAX_BYTES:
+                return None
+        return bytes(buf)
+
+
 def fetch(url: str) -> dict:
     """下載並轉檔，回傳索引資料。失敗回傳 {bad: 1}（下次仍會重試）。"""
     k = key_of(url)
     try:
-        r = requests.get(url, headers=UA, timeout=12)
-        r.raise_for_status()
-        raw = r.content
+        raw = download(url)
+        if not raw:
+            return {"bad": 1, "retry": 0}
         im = Image.open(io.BytesIO(raw))
+        if im.format not in ALLOWED_FORMATS:
+            return {"bad": 1, "retry": 0}
+        im.draft("RGB", (SIZE * 2, SIZE * 2))  # JPEG 直接以較小尺寸解碼，省記憶體
         im = ImageOps.exif_transpose(im).convert("RGB")
         if min(im.size) < 40:
             return {"bad": 1, "retry": 0}

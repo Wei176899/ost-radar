@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import re
 import time
-import xml.etree.ElementTree as ET
+from defusedxml import ElementTree as ET  # 防 XXE 與實體展開攻擊
 from datetime import datetime, timedelta
 from email.utils import parsedate_to_datetime
 from urllib.parse import quote

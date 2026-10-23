@@ -22,6 +22,8 @@
   const TODAY = new Date().toISOString().slice(0, 10);
 
   let ITEMS = [], NEWS = [], META = {}, SRC = {};
+  const GROUPS = new Map();          // 比價群組 g → 同一商品在各通路的報價
+  const BUYABLE = new Set(["現貨", "預購", "待確認"]);
 
   /* ------------------------------------------------------------ data */
   async function load() {
@@ -36,7 +38,24 @@
       const m = map[it.id];
       if (m === 0) it.i = "";                              // 通路的「無圖片」佔位圖
       else if (m) { it.th = `img/${m[0]}.webp`; it.c = m[1]; } // 同網域 WebP 縮圖 + 主色
+      if (it.g) { if (!GROUPS.has(it.g)) GROUPS.set(it.g, []); GROUPS.get(it.g).push(it); }
     });
+  }
+  // 組內可購買的最低價（拍賣誘餌價已在資料端排除，這裡再過濾低於 250 元的報價）
+  function offerInfo(it) {
+    const all = (it.g && GROUPS.get(it.g)) || [it];
+    const ok = all.filter((o) => BUYABLE.has(o.st) && (o.p || 0) >= 250);
+    const low = ok.length ? Math.min(...ok.map((o) => o.p)) : null;
+    return { all, ok, low, stores: new Set(all.map((o) => o.s)).size };
+  }
+  const shortDate = (d) => { const [, m, dd] = (d || "").split("-"); return m ? `${+m}/${+dd}` : ""; };
+  // 販售狀況：剩餘庫存、已售出、預購截止
+  function salesBits(it) {
+    const out = [];
+    if (it.dl && it.dl >= TODAY) out.push(`預購至 ${shortDate(it.dl)}`);
+    if (it.q != null && it.st !== "缺貨" && it.q > 0) out.push(it.q <= 10 ? `剩 ${it.q} 件` : `庫存 ${it.q}`);
+    if (it.so) out.push(`已售 ${fmtN(it.so)}`);
+    return out;
   }
   const srcName = (k) => SRC[k]?.name || k;
 
@@ -70,18 +89,24 @@
     const flags = (it.fl || []).slice(0, 1).map((f) => `<span class="pill flag">${esc(f.replace(/ .*/, ""))}</span>`).join("");
     const sub = [];
     if (it.r && it.st === "預購") sub.push(`<span>${esc(relLabel(it))}</span>`);
-    if (it.v && it.q != null && it.st !== "缺貨") sub.push(`<span class="v">庫存 ${it.q}</span>`);
-    else if (it.v) sub.push(`<span class="v">✓ 已複查</span>`);
-    if (it.fr) sub.push(`<span>${esc(it.fr)}</span>`);
+    const sales = salesBits(it);
+    sales.forEach((b) => sub.push(`<span class="${/剩/.test(b) ? "warn" : "v"}">${esc(b)}</span>`));
+    if (!sales.length && it.v) sub.push(`<span class="v">✓ 已複查</span>`);
+    if (it.fr && sub.length < 3) sub.push(`<span>${esc(it.fr)}</span>`);
+    const oi = offerInfo(it);
+    const cmp = oi.stores > 1
+      ? `<div class="card-cmp"><span>${oi.stores} 家比價</span>${oi.low ? `<b>最低 $${fmtN(oi.low)}</b>` : ""}</div>` : "";
+    const bestPill = it.best && oi.stores > 1 ? `<span class="pill best">最低價</span>` : "";
     return `<${tag} class="card${it.st === "缺貨" ? " is-out" : ""}" data-f="${esc(it.f)}" data-i="${it._i}" type="button" aria-label="${esc(it.t)}，${esc(it.st)}，${esc(srcName(it.s))}">
       <div class="sleeve"><span class="disc" aria-hidden="true"></span>
         ${cover(it)}
-        <div class="pill-row"><span class="pill ${st}">${esc(stLabel(it))}</span>${flags}</div>
+        <div class="pill-row"><span class="pill ${st}">${esc(stLabel(it))}</span>${bestPill}${flags}</div>
         <span class="fmt-tag">${esc(FMT[it.f] || it.f)}${it.d ? " ×" + esc(it.d) : ""}</span>
       </div>
       <div class="card-t">${esc(it.t)}</div>
       <div class="card-meta">${priceHtml(it.p)}<span class="src">${esc(srcName(it.s))}</span></div>
       ${sub.length ? `<div class="card-sub">${sub.join("")}</div>` : ""}
+      ${cmp}
     </${tag}>`;
   }
 
@@ -154,7 +179,7 @@
     const market = ITEMS.filter((i) => i.st === "預購" && i.jp && MARKET.has(i.s));
     const defs = [...groups.entries()].slice(0, 10).map(([k, v]) => {
       const [y, m] = k.split("-");
-      return { k, label: `<b>${+m}</b>月<small>${y}・${v.length}</small>`, list: v };
+      return { k, label: `<b>${+m}</b>月<small>${esc(y)}・${v.length}</small>`, list: v };
     });
     if (undated.length) defs.push({ k: "tba", label: `日期未定<small>${undated.length}</small>`, list: undated });
     if (market.length) defs.push({ k: "market", label: `拍賣代購<small>${market.length}</small>`, list: market.slice(0, 60) });
@@ -189,7 +214,7 @@
       $("#newsList").innerHTML = news.slice(0, shown).map((n) => `
         <li><a href="${esc(safeUrl(n.url))}" ${ext}>
           <time datetime="${esc(n.date)}">${esc(n.date.replace(/-/g, "."))}</time>
-          <span><span class="nt">${esc(n.title).replace(HL, "<mark>$1</mark>")}</span><span class="ns">${esc(n.source)}${n.related ? ` · +${n.related} 則相關` : ""}${n.franchise ? " · " + esc(n.franchise) : ""}</span></span>
+          <span><span class="nt">${esc(n.title).replace(HL, "<mark>$1</mark>")}</span><span class="ns">${esc(n.source)}${n.related ? ` · +${Number(n.related) || 0} 則相關` : ""}${n.franchise ? " · " + esc(n.franchise) : ""}</span></span>
           ${n.release && n.release >= TODAY ? `<span class="rel">${esc(n.release.slice(5).replace("-", "/"))} 發售</span>` : "<span></span>"}
         </a></li>`).join("") || `<li class="rail-empty">尚無新聞</li>`;
       let more = $("#newsMore");
@@ -208,12 +233,12 @@
       <a class="lcard" href="${esc(safeUrl(n.url))}" ${ext}>
         <div class="lc-img">${img(/cdn\.shopify\.com/.test(n.image || "") ? n.image + (n.image.includes("?") ? "&" : "?") + "width=360" : n.image, "", "ok")}<span class="pill-row"><span class="pill ${n.status === "預購" ? "pre" : n.status === "現貨" ? "stock" : "out"}">${esc(n.status)}</span></span></div>
         <span class="lc-t">${esc(n.title)}</span>
-        <span class="lc-m"><span>${esc(n.source)}</span><span>${n.price ? esc(n.currency) + " " + n.price : ""}</span></span>
+        <span class="lc-m"><span>${esc(n.source)}</span><span>${n.price ? esc(n.currency) + " " + fmtN(Number(n.price) || 0) : ""}</span></span>
       </a>`).join("") || `<p class="rail-empty">尚無資料</p>`;
   }
 
   /* ------------------------------------------------------------ catalog */
-  const F = { q: "", ch: "shop", fmt: "", st: new Set(), kind: new Set(), src: new Set(), tag: new Set(), fr: "", sort: "smart", onlyJp: true, hideOut: true, onlyVer: false };
+  const F = { merge: true, q: "", ch: "shop", fmt: "", st: new Set(), kind: new Set(), src: new Set(), tag: new Set(), fr: "", sort: "smart", onlyJp: true, hideOut: true, onlyVer: false };
   let filtered = [], cursor = 0;
   const PAGE = 36;
 
@@ -224,12 +249,17 @@
     if (p.has("jp")) F.onlyJp = p.get("jp") !== "0";
     if (p.has("out")) F.hideOut = p.get("out") !== "1";
     if (p.has("ver")) F.onlyVer = p.get("ver") === "1";
+    if (p.has("merge")) F.merge = p.get("merge") !== "0";
+    // 只接受已知值，避免網址參數帶入非預期內容
+    if (!Object.hasOwn(SORTS, F.sort)) F.sort = "smart";
+    if (!["", "shop", "market"].includes(F.ch)) F.ch = "shop";
+    if (F.fmt && !Object.hasOwn(FMT, F.fmt)) F.fmt = "";
   }
   function writeURL() {
     const p = new URLSearchParams();
     if (F.q) p.set("q", F.q); if (F.ch !== "shop") p.set("ch", F.ch); if (F.fmt) p.set("f", F.fmt); if (F.fr) p.set("fr", F.fr); if (F.sort !== "smart") p.set("sort", F.sort);
     ["st", "kind", "src", "tag"].forEach((k) => F[k].size && p.set(k, [...F[k]].join(",")));
-    if (!F.onlyJp) p.set("jp", "0"); if (!F.hideOut) p.set("out", "1"); if (F.onlyVer) p.set("ver", "1");
+    if (!F.onlyJp) p.set("jp", "0"); if (!F.hideOut) p.set("out", "1"); if (F.onlyVer) p.set("ver", "1"); if (!F.merge) p.set("merge", "0");
     const cur = new URLSearchParams(location.search).get("item");
     if (cur) p.set("item", cur);
     const s = p.toString();
@@ -299,7 +329,18 @@
   }
   const isMobile = () => matchMedia("(max-width: 820px)").matches;
   function applyFilters({ anchor = true } = {}) {
-    filtered = ITEMS.filter((i) => match(i)).sort(SORTS[F.sort] || SORTS.smart);
+    let list = ITEMS.filter((i) => match(i));
+    if (F.merge) { // 同一商品只顯示一張卡：有貨優先、其次最低價
+      const rank = { 現貨: 0, 預購: 1, 待確認: 2, 缺貨: 3 };
+      const by = new Map();
+      list.forEach((i) => {
+        const k = i.g || i.id, cur = by.get(k);
+        if (!cur || rank[i.st] - rank[cur.st] < 0 ||
+            (rank[i.st] === rank[cur.st] && (i.p || 1e9) < (cur.p || 1e9))) by.set(k, i);
+      });
+      list = [...by.values()];
+    }
+    filtered = list.sort(SORTS[F.sort] || SORTS.smart);
     cursor = 0;
     $("#grid").innerHTML = "";
     if (!filtered.length) $("#grid").innerHTML = `<div class="empty"><b>沒有符合的商品</b></div>`;
@@ -349,11 +390,13 @@
     $("#onlyJp").addEventListener("change", (e) => { F.onlyJp = e.target.checked; applyFilters(); });
     $("#hideOut").addEventListener("change", (e) => { F.hideOut = e.target.checked; applyFilters(); });
     $("#onlyVerified").addEventListener("change", (e) => { F.onlyVer = e.target.checked; applyFilters(); });
+    $("#mergeSame").checked = F.merge;
+    $("#mergeSame").addEventListener("change", (e) => { F.merge = e.target.checked; applyFilters(); });
     $("#resetBtn").addEventListener("click", () => {
-      Object.assign(F, { q: "", ch: "shop", fmt: "", fr: "", sort: "smart", onlyJp: true, hideOut: true, onlyVer: false });
+      Object.assign(F, { merge: true, q: "", ch: "shop", fmt: "", fr: "", sort: "smart", onlyJp: true, hideOut: true, onlyVer: false });
       ["st", "kind", "src", "tag"].forEach((k) => F[k].clear());
       $("#q").value = ""; $("#frSel").value = ""; $("#sortSel").value = "smart";
-      $("#onlyJp").checked = true; $("#hideOut").checked = true; $("#onlyVerified").checked = false;
+      $("#onlyJp").checked = true; $("#hideOut").checked = true; $("#onlyVerified").checked = false; $("#mergeSame").checked = true;
       applyFilters();
     });
     const panel = $("#filterPanel"), openBtn = $("#filterOpen");
@@ -432,6 +475,9 @@
       ["類型", `${KIND[it.k] || ""}・${SUB[it.sb] || ""}`],
       it.fr && ["作品", `<a href="?fr=${encodeURIComponent(it.fr)}#catalog" data-fr="${esc(it.fr)}">${esc(it.fr)} →</a>`],
       it.r && ["發售日", esc(relLong(it.r))],
+      it.dl && ["預購截止", esc(relLong(it.dl)) + (it.dl < TODAY ? "（已截止）" : "")],
+      it.q != null && it.st !== "缺貨" && ["剩餘庫存", it.q > 0 ? `${fmtN(it.q)} 件` : "需調貨"],
+      it.so && ["已售出", `${fmtN(it.so)} 件`],
       it.n && !(it.r && /^預計/.test(it.n)) && ["備註", esc(it.n)],
       it.sl && ["品牌／賣家", esc(it.sl)],
       ["通路", `${esc(srcName(it.s))}${MARKET.has(it.s) ? "（拍賣）" : ""}`],
@@ -439,7 +485,23 @@
       (it.tg || []).length && ["版本", `<div class="sb-tags">${it.tg.map((t) => `<span>${esc(t)}</span>`).join("")}</div>`],
       (it.fl || []).length && ["動態", `<div class="sb-tags">${it.fl.map((t) => `<span>${esc(t)}</span>`).join("")}</div>`],
     ].filter(Boolean);
-    const alts = similar(it);
+    // 比價：同一商品的所有報價，可購買者依價格排序
+    const oi = offerInfo(it);
+    const offers = oi.all.slice().sort((a, b) =>
+      (BUYABLE.has(b.st) - BUYABLE.has(a.st)) || (a.p ?? 1e9) - (b.p ?? 1e9));  // 可購買者依價格由低到高
+    const cmpHtml = oi.stores > 1 ? `<div class="sb-cmp"><h4>比價<small>${oi.stores} 家・${oi.all.length} 筆</small></h4>
+      <ol>${offers.map((o) => {
+        const low = oi.low != null && o.p === oi.low && BUYABLE.has(o.st) && o.p >= 250;
+        const bits = salesBits(o);
+        return `<li class="${low ? "low" : ""}${o === it ? " cur" : ""}">
+          <a href="#" data-i="${o._i}" class="cmp-main"><span class="cs">${esc(srcName(o.s))}</span>
+            <span class="cst ${ST_CLS[o.st] || "unk"}">${esc(stLabel(o))}</span>
+            ${bits.length ? `<span class="cb">${esc(bits.join("・"))}</span>` : ""}</a>
+          <span class="cp">${o.p ? "$" + fmtN(o.p) : "—"}${low ? "<em>最低</em>" : ""}</span>
+          <a class="cgo" href="${esc(safeUrl(o.u))}" ${ext} aria-label="前往 ${esc(srcName(o.s))}">↗</a></li>`;
+      }).join("")}</ol></div>` : "";
+    const sameGroup = new Set(oi.all);
+    const alts = similar(it).filter((o) => !sameGroup.has(o));
     $("#sheetBody").innerHTML = `
       <div class="sb-hero card" data-f="${esc(it.f)}"><span class="disc" aria-hidden="true"></span>
         ${cover(it, { eager: true, hi: true, phLen: 40 })}</div>
@@ -452,8 +514,9 @@
         <a class="btn primary sb-buy" href="${esc(safeUrl(it.u))}" ${ext}>前往 ${esc(srcName(it.s))} <span aria-hidden="true">↗</span></a>
         <button class="btn ghost sb-share" type="button" data-share>分享</button>
       </div>
-      ${(META.links || []).map((l) => `<a class="sb-ref" href="${esc(safeUrl(l.search.replace("{q}", encodeURIComponent(refQuery(it)))))}" ${ext}>在 ${esc(l.name)} 查詢版本資料 <span aria-hidden="true">↗</span></a>`).join("")}
-      ${alts.length ? `<div class="sb-alt"><h4>其他通路</h4>
+      ${(META.links || []).filter((l) => l.search).map((l) => `<a class="sb-ref" href="${esc(safeUrl(l.search.replace("{q}", encodeURIComponent(refQuery(it)))))}" ${ext}>在 ${esc(l.name)} 查詢版本資料 <span aria-hidden="true">↗</span></a>`).join("")}
+      ${cmpHtml}
+      ${alts.length ? `<div class="sb-alt"><h4>相似商品</h4>
         ${alts.map((o) => `<a class="alt-row" href="#" data-i="${o._i}">${o.i ? img(o.th || o.i, "", "ok", { fallback: o.th ? o.i : "" }) : `<span class="ph"></span>`}
           <span><span class="at">${esc(o.t)}</span><span class="as">${esc(srcName(o.s))}</span></span>
           <span class="ap">${o.p ? "$" + fmtN(o.p) : "—"}<span>${esc(o.st)}</span></span></a>`).join("")}</div>` : ""}`;
@@ -507,7 +570,7 @@
       y0 = null;
     });
     document.addEventListener("click", (e) => {
-      const c = e.target.closest(".card[data-i], .alt-row[data-i]");
+      const c = e.target.closest(".card[data-i], .alt-row[data-i], .cmp-main[data-i]");
       if (c && !c.closest(".sb-hero")) { e.preventDefault(); openSheet(ITEMS[+c.dataset.i]); return; }
       if (e.target.closest("[data-close]")) closeSheet();
       if (e.target.closest("[data-share]")) share();
@@ -549,13 +612,13 @@
       </li>`;
     const ref = (l) => `
       <li class="store">
-        <a class="store-row" href="${esc(safeUrl(l.home))}" ${ext}><span class="sn">${esc(l.name)}</span><span class="sc">—</span></a>
+        <a class="store-row" href="${esc(safeUrl(l.home))}" ${ext}><span class="sn">${esc(l.name)}</span><span class="sc">${l.note ? esc(l.note) : "—"}</span></a>
         <a class="store-ext" href="${esc(safeUrl(l.home))}" ${ext} aria-label="開啟 ${esc(l.name)} 網站">↗</a>
       </li>`;
-    const sections = ["唱片行", "電商", "拍賣"].filter((g) => by[g]).map((g) =>
-      `<div class="store-group"><h3>${g}</h3><ul>${by[g].map(tile).join("")}</ul></div>`);
-    if ((META.links || []).length)
-      sections.push(`<div class="store-group"><h3>資料庫</h3><ul>${META.links.map(ref).join("")}</ul></div>`);
+    const linksBy = {};
+    (META.links || []).forEach((l) => (linksBy[l.type] ||= []).push(l));  // 僅提供連結的通路與資料庫
+    const sections = ["唱片行", "電商", "拍賣", "資料庫"].filter((g) => by[g] || linksBy[g]).map((g) =>
+      `<div class="store-group"><h3>${g}</h3><ul>${(by[g] || []).map(tile).join("")}${(linksBy[g] || []).map(ref).join("")}</ul></div>`);
     $("#storeList").innerHTML = sections.join("");
     $("#storeList").addEventListener("click", (e) => {
       const b = e.target.closest("button.store-row"); if (!b) return;
@@ -631,7 +694,10 @@
   new MutationObserver((ms) => ms.forEach((m) => m.addedNodes.forEach((n) => {
     if (n.nodeType !== 1) return;
     (n.matches?.("[data-c]") ? [n] : []).concat([...n.querySelectorAll("[data-c]")])
-      .forEach((el) => { el.style.backgroundColor = el.dataset.c; el.removeAttribute("data-c"); });
+      .forEach((el) => {
+        if (/^#[0-9a-f]{6}$/i.test(el.dataset.c)) el.style.backgroundColor = el.dataset.c;  // 只接受 #rrggbb
+        el.removeAttribute("data-c");
+      });
   }))).observe(document.body, { childList: true, subtree: true });
   bindChrome();
   skeleton();

@@ -665,6 +665,7 @@
     "wwr": true,
     "fivemusic": true,
     "rottenblues": true,
+    "tht": true,
     "ruten": true,
     "yahoo": true,
     "myacg": true
@@ -752,6 +753,13 @@
   "search_budget_min": 25,
   "verify_budget_min": 15,
   "links": [
+    {
+      "key": "beethobear",
+      "name": "貝多熊唱片庫",
+      "type": "唱片行",
+      "home": "https://beethobear.wpcomstaging.com/",
+      "note": "僅提供連結"
+    },
     {
       "key": "discogs",
       "name": "Discogs",

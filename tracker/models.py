@@ -22,6 +22,7 @@ SOURCE_META = {
     "wwr": {"name": "小白兔唱片", "type": "唱片行", "home": "https://wwr.com.tw/"},
     "fivemusic": {"name": "五大唱片", "type": "唱片行", "home": "https://www.5music.com.tw/"},
     "rottenblues": {"name": "爛調唱片", "type": "唱片行", "home": "https://www.rottenblues.com/"},
+    "tht": {"name": "THT 唱片", "type": "唱片行", "home": "https://www.thtrecords.com/"},
     "ruten": {"name": "露天拍賣", "type": "拍賣", "home": "https://www.ruten.com.tw/"},
     "yahoo": {"name": "Yahoo 拍賣", "type": "拍賣", "home": "https://tw.bid.yahoo.com/"},
     "myacg": {"name": "買動漫", "type": "拍賣", "home": "https://www.myacg.com.tw/"},
@@ -45,6 +46,9 @@ class Item:
     extra: str = ""            # 描述文字（只用於判斷，不輸出）
     verified: bool = False     # 是否已用商品頁 / 庫存 API 複查
     stock: int | None = None
+    sold: int | None = None    # 已售出數量（通路有提供時）
+    deadline: str = ""         # 預購截止日 YYYY-MM-DD
+    barcode: str = ""          # 國際條碼（比價用）
     queries: list[str] = field(default_factory=list)
     # 分類（classify 後填入）
     fmt: str = ""
@@ -115,3 +119,26 @@ PREORDER_RE = re.compile(r"預購|預定|預約|予約|代訂|預計.{0,8}(?:出
 
 def title_says_preorder(t: str) -> bool:
     return bool(PREORDER_RE.search(t))
+
+
+def norm_barcode(s) -> str:
+    """取出 8～14 碼的商品條碼（例如佳佳的 A8800365015228 → 8800365015228）。"""
+    m = re.search(r"(\d{8,14})", str(s or ""))
+    return m.group(1).lstrip("0") if m else ""
+
+
+def month_day(s: str, ref: date | None = None) -> str:
+    """「11/18」這類沒有年份的日期，推算成最近的未來日期。"""
+    m = re.search(r"(\d{1,2})/(\d{1,2})", s or "")
+    if not m:
+        return ""
+    ref = ref or TODAY
+    mo, d = int(m.group(1)), int(m.group(2))
+    for y in (ref.year, ref.year + 1):
+        try:
+            dt = date(y, mo, d)
+        except ValueError:
+            return ""
+        if dt >= ref - timedelta(days=30):
+            return dt.isoformat()
+    return ""

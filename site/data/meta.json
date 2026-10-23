@@ -1,8 +1,8 @@
 {
- "generated": "2026-10-23 08:39",
- "seconds": 1204,
- "total": 5088,
- "news": 246,
+ "generated": "2026-10-23 10:47",
+ "seconds": 1313,
+ "total": 5384,
+ "news": 247,
  "sources": [
   {
    "key": "books",
@@ -18,7 +18,7 @@
    "name": "誠品線上",
    "type": "書店電商",
    "home": "https://www.eslite.com/",
-   "count": 224,
+   "count": 225,
    "errors": 0,
    "down": ""
   },
@@ -47,7 +47,7 @@
    "home": "https://www.candlelightrecords.tw/",
    "count": 328,
    "errors": 0,
-   "down": "連續 6 次連線失敗（可能封鎖海外連線）"
+   "down": ""
   },
   {
    "key": "shs",
@@ -95,6 +95,15 @@
    "down": ""
   },
   {
+   "key": "tht",
+   "name": "THT 唱片",
+   "type": "唱片行",
+   "home": "https://www.thtrecords.com/",
+   "count": 287,
+   "errors": 0,
+   "down": ""
+  },
+  {
    "key": "ruten",
    "name": "露天拍賣",
    "type": "拍賣",
@@ -108,8 +117,8 @@
    "name": "Yahoo 拍賣",
    "type": "拍賣",
    "home": "https://tw.bid.yahoo.com/",
-   "count": 1305,
-   "errors": 0,
+   "count": 1299,
+   "errors": 5,
    "down": ""
   },
   {
@@ -123,18 +132,18 @@
   }
  ],
  "status": {
-  "預購": 172,
-  "現貨": 3765,
-  "待確認": 419,
-  "缺貨": 732
+  "預購": 216,
+  "現貨": 3908,
+  "待確認": 420,
+  "缺貨": 840
  },
  "formats": {
-  "vinyl": 3678,
-  "7inch": 140,
-  "cd": 986,
-  "cassette": 284
+  "vinyl": 3950,
+  "7inch": 147,
+  "cd": 1002,
+  "cassette": 285
  },
- "verified": 4593,
+ "verified": 5245,
  "franchises": [
   "AKIRA",
   "BanG Dream!",
@@ -206,6 +215,13 @@
   "魯邦三世"
  ],
  "links": [
+  {
+   "key": "beethobear",
+   "name": "貝多熊唱片庫",
+   "type": "唱片行",
+   "home": "https://beethobear.wpcomstaging.com/",
+   "note": "僅提供連結"
+  },
   {
    "key": "discogs",
    "name": "Discogs",

@@ -15,7 +15,7 @@ from urllib.parse import quote
 import requests
 from bs4 import BeautifulSoup
 
-from .models import (OUT, PRE, STOCK, UNKNOWN, Item, clean, is_future, norm_date,
+from .models import (OUT, PRE, STOCK, UNKNOWN, Item, clean, is_future, month_day, norm_barcode, norm_date,
                      title_says_preorder, to_int)
 
 UA = {
@@ -196,6 +196,7 @@ class Eslite(Source):
                       seller=" / ".join(f.get("author", [])[:2]))
             it.stock = stock
             it.extra = clean(f.get("description", ""))[:500]
+            it.barcode = norm_barcode(f.get("ean"))
             it.fmt_hint = "vinyl" if "15442" in cats else "cd"
             it.is_ost = "15454" in cats
             out.append(it)
@@ -219,8 +220,10 @@ class Eslite(Source):
             lv3 = d.get("level3_name") or ""
             if "原聲" in lv3 or "配樂" in lv3:
                 it.is_ost = True
+            it.barcode = norm_barcode(d.get("ean")) or it.barcode
             if "預購" in str(mode) or (is_future(it.release) and btn == "add_to_shopping_cart"):
                 it.status = PRE
+                it.deadline = norm_date(d.get("sale_mode_end_date") or "")
             elif btn == "add_to_shopping_cart":
                 it.status = STOCK if (it.stock or 0) > 0 else UNKNOWN
                 if not it.stock:
@@ -310,6 +313,7 @@ class GMusic(Source):
                           ("https:" + img) if img.startswith("//") else img,
                           seller=clean(p.get("vendor")))
                 it.stock = qty
+                it.sold = to_int(p.get("total_sold")) or None
                 it.verified = True  # 搜尋 API 直接回傳即時庫存
                 it.extra = clean(p.get("brief"))
                 it.fmt_hint = "cd"
@@ -426,6 +430,7 @@ class Ruten(Source):
                 it = Item("ruten", d["ProdId"], title, f"https://www.ruten.com.tw/item/show?{d['ProdId']}",
                           to_int((d.get("PriceRange") or [None])[0]), status, "", ruten_image(img))
                 it.stock, it.verified = qty, True
+                it.sold = to_int(d.get("SoldQty")) or None
                 if ship and ship < 1000:
                     it.note = f"下單後約 {ship} 天出貨"
                 out.append(it)
@@ -468,6 +473,7 @@ class Yahoo(Source):
                       to_int(h.get("ec_buyprice") or h.get("ec_price")), status, "",
                       h.get("ec_img_uri") or h.get("ec_image") or "", seller=clean(h.get("ec_storename")))
             it.verified = True
+            it.sold = to_int(h.get("ec_buy_count")) or None
             it.extra = " ".join(x.get("item", "") for x in h.get("ec_hashtags") or [])
             out.append(it)
         return out
@@ -531,6 +537,9 @@ class Shs(Source):
             m = re.search(r"發行日期\s*(\d{4}-\d{2}-\d{2})", txt)
             if m:
                 it.release = norm_date(m.group(1))
+            m = re.search(r"國際條碼\s*(\d{8,14})", txt)
+            if m:
+                it.barcode = norm_barcode(m.group(1))
             m = re.search(r"商品狀態\s*(有現貨|需調貨|需預購|已售完|絕版)", txt)
             state_txt = m.group(1) if m else ""
             if state_txt == "有現貨":
@@ -574,6 +583,8 @@ class MyAcg(Source):
             it = Item("myacg", gid, title, f"https://www.myacg.com.tw/goods_detail.php?gid={gid}",
                       to_int(price.get_text()) if price else None, status, "", img.get("src", "") if img else "")
             it.verified = True  # 列表即賣場即時狀態
+            m = re.search(r"銷量[:：]\s*(\d+)", li.get_text(" ", strip=True))
+            it.sold = int(m.group(1)) if m and int(m.group(1)) > 0 else None
             out.append(it)
         return out
 
@@ -625,6 +636,9 @@ class Ccr(Source):
             n += 1
             it.verified = True
             txt = BeautifulSoup(t, "html.parser").get_text(" ", strip=True)
+            m = re.search(r"產品條碼\s*:\s*(\w+)", txt)
+            if m:
+                it.barcode = norm_barcode(m.group(1))
             m = re.search(r"網路價\s*NT\$\s*:\s*([\d,]+)", txt)
             if m:
                 it.price = to_int(m.group(1))
@@ -698,11 +712,13 @@ class FiveMusic(Source):
             title = clean(box.select_one(".des").get_text()) if box.select_one(".des") else ""
             img = box.select_one("img")
             src = (img.get("data-src") or img.get("src") or "") if img else ""
-            m = re.search(r"預購至([\d/]+)", title)
+            m = re.search(r"預購至\s*([\d/]+)", title)
             it = Item("fivemusic", cdno, f"{artist} {title}".strip(), f"https://www.5music.com.tw/CDList-C.asp?cdno={cdno}",
                       None, PRE if m or title_says_preorder(title) else UNKNOWN,
                       image=f"https://www.5music.com.tw/{src.lstrip('/')}" if src else "", seller=artist)
             it.fmt_hint = "cd"  # 五大的品名通常只有黑膠會註明格式
+            if m:
+                it.deadline = month_day(m.group(1))
             out.append(it)
         return out
 
@@ -723,6 +739,9 @@ class FiveMusic(Source):
             m = re.search(r"發行日期\s*([\d/]+)", txt)
             if m:
                 it.release = norm_date(m.group(1))
+            m = re.search(r"條碼\s*(\d{8,14})", txt)
+            if m:
+                it.barcode = norm_barcode(m.group(1))
             if re.search(r"音樂類型\s*黑膠", txt):
                 it.fmt_hint = "vinyl"
             if "目前無現貨" in txt:
@@ -767,5 +786,64 @@ class RottenBlues(Source):
         return out
 
 
+# ======================================================================= THT 唱片（EasyStore）
+THT_COLLECTIONS = ["o-s-t-v-a", "japanese"]
+
+
+class Tht(Source):
+    key = "tht"
+    catalog = True
+    host = "https://www.thtrecords.com"
+
+    def crawl(self):
+        out: dict[str, Item] = {}
+        for col in THT_COLLECTIONS:
+            for page in range(1, 40):
+                try:
+                    r = self.get(f"{self.host}/collections/{col}?page={page}")
+                except SourceDown:
+                    return list(out.values())
+                except Exception as e:  # noqa: BLE001
+                    self.log(f"  [THT] {col} 第 {page} 頁失敗: {e}")
+                    break
+                cards = BeautifulSoup(r.text, "html.parser").select("#main-collection-product-grid > li")
+                fresh = 0
+                for li in cards:
+                    badge = li.select_one("[data-product-id]")
+                    a = li.select_one('a[href*="/products/"]')
+                    if not badge or not a:
+                        continue
+                    pid = badge["data-product-id"]
+                    if pid in out:
+                        continue
+                    fresh += 1
+                    title = clean(li.select_one(".card__heading, h3").get_text()) if li.select_one(".card__heading, h3")                         else clean(a.get_text())
+                    title = re.sub(r"\s*(Regular price|Sale price|Unit price).*$", "", title)
+                    title = re.sub(r"^(售完|Sold out)\s*", "", title, flags=re.I).strip()
+                    img = li.select_one("img")
+                    src = (img.get("src") or img.get("data-src") or "") if img else ""
+                    available = badge.get("data-product-available") == "1"
+                    m = re.search(r"(\d{4}/\d{1,2}(?:/\d{1,2})?)\s*發行", title)
+                    release = norm_date(m.group(1)) if m and m.group(1).count("/") == 2 else (
+                        f"{m.group(1).split('/')[0]}-{int(m.group(1).split('/')[1]):02d}" if m else "")
+                    if not release:
+                        m2 = re.search(r"(\d{1,2}/\d{1,2})\s*發行", title)
+                        release = month_day(m2.group(1)) if m2 else ""
+                    pre = bool(re.search(r"預訂|預購", title))
+                    status = (PRE if pre else STOCK) if available else OUT
+                    href = a["href"].split("?")[0]
+                    product_path = "/products/" + href.split("/products/", 1)[1]
+                    it = Item("tht", pid, title, f"{self.host}{product_path}",
+                              to_int(badge.get("data-product-price")), status, release,
+                              src.split("?")[0] + "?width=600" if src else "")
+                    it.verified = True  # 列表即含可否購買
+                    it.is_ost = col == "o-s-t-v-a"
+                    it.extra = "日本" if col == "japanese" else ""
+                    out[pid] = it
+                if not fresh:
+                    break
+        return list(out.values())
+
+
 SOURCES = {c.key: c for c in (Books, Eslite, PChome, GMusic, Candlelight, Shs, Ccr, Wwr, FiveMusic,
-                              RottenBlues, Ruten, Yahoo, MyAcg)}
+                              RottenBlues, Tht, Ruten, Yahoo, MyAcg)}
