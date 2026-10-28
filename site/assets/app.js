@@ -201,8 +201,18 @@
       { k: "降價", name: "降價", list: by("降價") },
     ].filter((d) => d.list.length || d.k === "all");
     const map = Object.fromEntries(defs.map((d) => [d.k, d.list]));
+    // 分頁網格：手機每頁 6 筆、電腦 12 筆，不必一直往下或往右滑
+    let cur = [];
+    const show = (n, scroll) => {
+      const size = isMobile() ? 6 : 12, pages = Math.max(1, Math.ceil(cur.length / size));
+      const page = Math.min(Math.max(1, n), pages), start = (page - 1) * size;
+      $("#pulseGrid").innerHTML = cur.length ? cur.slice(start, start + size).map((i) => card(i)).join("")
+        : `<p class="rail-empty">目前沒有變動。</p>`;
+      pager($("#pulsePager"), page, pages, (p) => show(p, true));
+      if (scroll) $("#pulseTabs").scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "center" });
+    };
     tabs($("#pulseTabs"), defs.map((d) => ({ k: d.k, label: `${d.name}<small>${d.list.length}</small>` })),
-      (k) => rail($("#pulseRail"), map[k].slice(0, 80), "目前沒有變動。"));
+      (k) => { cur = map[k].slice().sort((a, b) => (b.fs || "").localeCompare(a.fs || "")).slice(0, 120); show(1, false); });
   }
 
   /* ------------------------------------------------------------ news */
@@ -238,9 +248,8 @@
   }
 
   /* ------------------------------------------------------------ catalog */
-  const F = { merge: true, q: "", ch: "shop", fmt: "", st: new Set(), kind: new Set(), src: new Set(), tag: new Set(), fr: "", sort: "smart", onlyJp: true, hideOut: true, onlyVer: false };
-  let filtered = [], cursor = 0;
-  const PAGE = 36;
+  const F = { page: 1, merge: true, q: "", ch: "shop", fmt: "", st: new Set(), kind: new Set(), src: new Set(), tag: new Set(), fr: "", sort: "smart", onlyJp: true, hideOut: true, onlyVer: false };
+  let filtered = [];
 
   function readURL() {
     const p = new URLSearchParams(location.search);
@@ -250,6 +259,7 @@
     if (p.has("out")) F.hideOut = p.get("out") !== "1";
     if (p.has("ver")) F.onlyVer = p.get("ver") === "1";
     if (p.has("merge")) F.merge = p.get("merge") !== "0";
+    F.page = Math.max(1, parseInt(p.get("page") || "1", 10) || 1);
     // 只接受已知值，避免網址參數帶入非預期內容
     if (!Object.hasOwn(SORTS, F.sort)) F.sort = "smart";
     if (!["", "shop", "market"].includes(F.ch)) F.ch = "shop";
@@ -259,7 +269,7 @@
     const p = new URLSearchParams();
     if (F.q) p.set("q", F.q); if (F.ch !== "shop") p.set("ch", F.ch); if (F.fmt) p.set("f", F.fmt); if (F.fr) p.set("fr", F.fr); if (F.sort !== "smart") p.set("sort", F.sort);
     ["st", "kind", "src", "tag"].forEach((k) => F[k].size && p.set(k, [...F[k]].join(",")));
-    if (!F.onlyJp) p.set("jp", "0"); if (!F.hideOut) p.set("out", "1"); if (F.onlyVer) p.set("ver", "1"); if (!F.merge) p.set("merge", "0");
+    if (!F.onlyJp) p.set("jp", "0"); if (!F.hideOut) p.set("out", "1"); if (F.onlyVer) p.set("ver", "1"); if (!F.merge) p.set("merge", "0"); if (F.page > 1) p.set("page", String(F.page));
     const cur = new URLSearchParams(location.search).get("item");
     if (cur) p.set("item", cur);
     const s = p.toString();
@@ -328,7 +338,23 @@
     if (scrollY > target + 1) window.scrollTo({ top: target, behavior: "instant" });
   }
   const isMobile = () => matchMedia("(max-width: 820px)").matches;
-  function applyFilters({ anchor = true } = {}) {
+  // 分頁按鈕：‹ 1 … 4 5 6 … 20 ›，手機顯示較少頁碼
+  function pager(el, page, pages, go) {
+    if (pages <= 1) { el.innerHTML = ""; el.hidden = true; return; }
+    el.hidden = false;
+    const span = isMobile() ? 1 : 2, nums = new Set([1, pages]);
+    for (let i = page - span; i <= page + span; i++) if (i >= 1 && i <= pages) nums.add(i);
+    const list = [...nums].sort((a, b) => a - b);
+    let html = `<button type="button" data-p="${page - 1}" ${page <= 1 ? "disabled" : ""} aria-label="上一頁">‹</button>`;
+    list.forEach((n, i) => {
+      if (i && n - list[i - 1] > 1) html += `<span class="gap">…</span>`;
+      html += `<button type="button" data-p="${n}" ${n === page ? 'aria-current="page"' : ""}>${n}</button>`;
+    });
+    html += `<button type="button" data-p="${page + 1}" ${page >= pages ? "disabled" : ""} aria-label="下一頁">›</button>`;
+    el.innerHTML = html;
+    el.onclick = (e) => { const b = e.target.closest("button[data-p]"); if (b && !b.disabled) go(+b.dataset.p); };
+  }
+  function applyFilters({ anchor = true, keepPage = false } = {}) {
     let list = ITEMS.filter((i) => match(i));
     if (F.merge) { // 同一商品只顯示一張卡：有貨優先、其次最低價
       const rank = { 現貨: 0, 預購: 1, 待確認: 2, 缺貨: 3 };
@@ -341,10 +367,8 @@
       list = [...by.values()];
     }
     filtered = list.sort(SORTS[F.sort] || SORTS.smart);
-    cursor = 0;
-    $("#grid").innerHTML = "";
-    if (!filtered.length) $("#grid").innerHTML = `<div class="empty"><b>沒有符合的商品</b></div>`;
-    more();
+    if (!keepPage) F.page = 1;
+    showPage(F.page, { scroll: false });
     const pre = filtered.filter((i) => i.st === "預購").length, stock = filtered.filter((i) => i.st === "現貨").length;
     $("#resultLine").innerHTML = `<b>${fmtN(filtered.length)}</b> 筆 · 預購 ${fmtN(pre)} · 現貨 ${fmtN(stock)}`;
     $("#applyCount").textContent = fmtN(filtered.length);
@@ -352,20 +376,23 @@
     writeURL();
     if (anchor) keepAnchor();
   }
-  // 前 3 批自動載入，之後改用按鈕，讓下方的通路與頁尾仍然到得了
-  const AUTO = PAGE * 3;
-  function more() {
-    if (cursor >= filtered.length) return;
-    const slice = filtered.slice(cursor, cursor + PAGE);
-    cursor += slice.length;
-    $("#grid").insertAdjacentHTML("beforeend", slice.map((i) => card(i)).join(""));
-    const left = filtered.length - cursor, btn = $("#moreBtn");
-    btn.hidden = left <= 0 || cursor < AUTO;
-    btn.textContent = `顯示更多・還有 ${fmtN(left)} 筆`;
-    // 載入後若底部仍在視窗附近，繼續補到自動上限（IntersectionObserver 不會重複觸發）
-    if (cursor < AUTO && left > 0) requestAnimationFrame(() => {
-      if ($("#sentinel").getBoundingClientRect().top < innerHeight + 800) more();
-    });
+  // 分頁顯示：手機每頁 20 筆、電腦 36 筆
+  const pageSize = () => (isMobile() ? 20 : 36);
+  function showPage(n, { scroll = true } = {}) {
+    const size = pageSize(), pages = Math.max(1, Math.ceil(filtered.length / size));
+    F.page = Math.min(Math.max(1, n), pages);
+    const start = (F.page - 1) * size;
+    $("#grid").innerHTML = filtered.length
+      ? filtered.slice(start, start + size).map((i) => card(i)).join("")
+      : `<div class="empty"><b>沒有符合的商品</b></div>`;
+    pager($("#pager"), F.page, pages, (p) => showPage(p));
+    $("#pageInfo").textContent = pages > 1 ? `第 ${F.page} / ${pages} 頁` : "";
+    if (scroll) {
+      writeURL();
+      const bar = $("#filters"), stickyTop = parseFloat(getComputedStyle(bar).top) || 0;
+      const top = $(".result-row").getBoundingClientRect().top + scrollY - stickyTop - bar.offsetHeight - 6;
+      window.scrollTo({ top, behavior: reduce ? "auto" : "smooth" });
+    }
   }
 
   function bindCatalog() {
@@ -431,9 +458,9 @@
       $("#filters").scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
     });
 
-    new IntersectionObserver((es) => es[0].isIntersecting && cursor < AUTO && more(), { rootMargin: "800px" }).observe($("#sentinel"));
-    $("#moreBtn").addEventListener("click", () => more());
-    applyFilters({ anchor: false });
+    let lastMobile = isMobile();  // 轉向或視窗大小改變導致每頁筆數不同時重新分頁
+    addEventListener("resize", () => { if (isMobile() !== lastMobile) { lastMobile = isMobile(); showPage(1, { scroll: false }); } });
+    applyFilters({ anchor: false, keepPage: true });
   }
 
   /* ------------------------------------------------------------ detail sheet */
@@ -660,7 +687,7 @@
   /* ------------------------------------------------------------ skeleton + parallax */
   function skeleton() {
     const sk = `<div class="skel" aria-hidden="true"><i></i><b></b><b></b></div>`;
-    ["#upcomingRail", "#pulseRail"].forEach((s) => ($(s).innerHTML = sk.repeat(6)));
+    ["#upcomingRail", "#pulseGrid"].forEach((s) => ($(s).innerHTML = sk.repeat(6)));
     $("#grid").innerHTML = sk.repeat(10);
     $("#newsList").innerHTML = `<li class="skel-line"></li>`.repeat(6);
   }

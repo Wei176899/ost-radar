@@ -23,8 +23,8 @@
 <!-- 字型非同步載入：Google Fonts 慢或連不上時，頁面先用系統字型顯示，不會整頁空白 -->
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;600&family=Noto+Sans+TC:wght@400;500;700;900&family=Noto+Serif+TC:wght@600;900&display=swap">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;600&family=Noto+Sans+TC:wght@400;500;700;900&family=Noto+Serif+TC:wght@600;900&display=swap" media="print" id="webfonts">
-<link rel="stylesheet" href="assets/style.css?v=17">
-<script src="assets/theme.js?v=17"></script>
+<link rel="stylesheet" href="assets/style.css?v=19">
+<script src="assets/theme.js?v=19"></script>
 </head>
 <body>
 <a class="skip" href="#catalog">跳到商品列表</a>
@@ -106,7 +106,8 @@
       <h2 id="pulseTitle">本期動態</h2>
     </header>
     <div class="pulse-tabs" id="pulseTabs" role="tablist" aria-label="動態類型"></div>
-    <div class="rail" id="pulseRail"></div>
+    <div class="grid pulse-grid" id="pulseGrid"></div>
+    <nav class="pager" id="pulsePager" aria-label="本期動態分頁" hidden></nav>
   </section>
 
   <!-- ============================== NEWS -->
@@ -177,8 +178,8 @@
       <div class="seg small" id="chSeg" role="group" aria-label="通路類型"></div>
     </div>
     <div class="grid" id="grid"></div>
-    <div class="sentinel" id="sentinel" aria-hidden="true"></div>
-    <button class="btn ghost more-btn" id="moreBtn" type="button" hidden></button>
+    <nav class="pager" id="pager" aria-label="商品分頁" hidden></nav>
+    <p class="page-info" id="pageInfo"></p>
   </section>
 
   <!-- ============================== STORES -->
@@ -211,6 +212,6 @@
 <div class="toast" id="toast" role="status" hidden></div>
 <button class="to-top" id="toTop" type="button" aria-label="回到頂端" hidden>↑</button>
 <noscript><p class="noscript">需要啟用 JavaScript 才能瀏覽商品資料。</p></noscript>
-<script src="assets/app.js?v=17" defer></script>
+<script src="assets/app.js?v=19" defer></script>
 </body>
 </html>
