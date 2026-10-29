@@ -1,8 +1,8 @@
 {
- "generated": "2026-10-28 09:19",
- "seconds": 1286,
- "total": 5471,
- "news": 236,
+ "generated": "2026-10-29 09:47",
+ "seconds": 1274,
+ "total": 5476,
+ "news": 230,
  "sources": [
   {
    "key": "books",
@@ -18,7 +18,7 @@
    "name": "誠品線上",
    "type": "書店電商",
    "home": "https://www.eslite.com/",
-   "count": 224,
+   "count": 225,
    "errors": 0,
    "down": ""
   },
@@ -54,7 +54,7 @@
    "name": "山海山唱片行",
    "type": "唱片行",
    "home": "https://www.shsmusic.tw/",
-   "count": 384,
+   "count": 385,
    "errors": 0,
    "down": ""
   },
@@ -90,7 +90,7 @@
    "name": "爛調唱片",
    "type": "唱片行",
    "home": "https://www.rottenblues.com/",
-   "count": 327,
+   "count": 328,
    "errors": 0,
    "down": ""
   },
@@ -117,7 +117,7 @@
    "name": "Yahoo 拍賣",
    "type": "拍賣",
    "home": "https://tw.bid.yahoo.com/",
-   "count": 1353,
+   "count": 1355,
    "errors": 0,
    "down": ""
   },
@@ -133,17 +133,17 @@
  ],
  "status": {
   "預購": 214,
-  "現貨": 3993,
-  "待確認": 420,
-  "缺貨": 844
+  "現貨": 3998,
+  "待確認": 418,
+  "缺貨": 846
  },
  "formats": {
-  "vinyl": 4014,
+  "vinyl": 4017,
   "7inch": 161,
-  "cd": 1003,
+  "cd": 1005,
   "cassette": 293
  },
- "verified": 4976,
+ "verified": 4981,
  "franchises": [
   "AKIRA",
   "BanG Dream!",
