@@ -1,7 +1,7 @@
 {
- "generated": "2026-10-31 09:35",
- "seconds": 1232,
- "total": 5490,
+ "generated": "2026-11-01 09:08",
+ "seconds": 1317,
+ "total": 5487,
  "news": 244,
  "sources": [
   {
@@ -18,7 +18,7 @@
    "name": "誠品線上",
    "type": "書店電商",
    "home": "https://www.eslite.com/",
-   "count": 226,
+   "count": 222,
    "errors": 0,
    "down": ""
   },
@@ -90,7 +90,7 @@
    "name": "爛調唱片",
    "type": "唱片行",
    "home": "https://www.rottenblues.com/",
-   "count": 331,
+   "count": 332,
    "errors": 0,
    "down": ""
   },
@@ -109,8 +109,8 @@
    "type": "拍賣",
    "home": "https://www.ruten.com.tw/",
    "count": 1974,
-   "errors": 0,
-   "down": ""
+   "errors": 6,
+   "down": "連續 6 次連線失敗（可能封鎖海外連線）"
   },
   {
    "key": "yahoo",
@@ -133,17 +133,17 @@
  ],
  "status": {
   "預購": 216,
-  "現貨": 4006,
+  "現貨": 4004,
   "待確認": 420,
-  "缺貨": 848
+  "缺貨": 847
  },
  "formats": {
   "vinyl": 4026,
   "7inch": 152,
-  "cd": 1017,
+  "cd": 1014,
   "cassette": 295
  },
- "verified": 4995,
+ "verified": 3018,
  "franchises": [
   "AKIRA",
   "BanG Dream!",
