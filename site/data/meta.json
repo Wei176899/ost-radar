@@ -1,8 +1,8 @@
 {
- "generated": "2026-11-02 09:29",
- "seconds": 1359,
- "total": 5485,
- "news": 246,
+ "generated": "2026-11-03 11:27",
+ "seconds": 1360,
+ "total": 5508,
+ "news": 243,
  "sources": [
   {
    "key": "books",
@@ -18,8 +18,8 @@
    "name": "誠品線上",
    "type": "書店電商",
    "home": "https://www.eslite.com/",
-   "count": 226,
-   "errors": 0,
+   "count": 229,
+   "errors": 1,
    "down": ""
   },
   {
@@ -99,7 +99,7 @@
    "name": "THT 唱片",
    "type": "唱片行",
    "home": "https://www.thtrecords.com/",
-   "count": 290,
+   "count": 291,
    "errors": 0,
    "down": ""
   },
@@ -108,7 +108,7 @@
    "name": "露天拍賣",
    "type": "拍賣",
    "home": "https://www.ruten.com.tw/",
-   "count": 1973,
+   "count": 1992,
    "errors": 0,
    "down": ""
   },
@@ -132,18 +132,18 @@
   }
  ],
  "status": {
-  "預購": 216,
-  "現貨": 4001,
+  "預購": 217,
+  "現貨": 4019,
   "待確認": 420,
-  "缺貨": 848
+  "缺貨": 852
  },
  "formats": {
-  "vinyl": 4026,
-  "7inch": 152,
-  "cd": 1013,
-  "cassette": 294
+  "vinyl": 4060,
+  "7inch": 144,
+  "cd": 1008,
+  "cassette": 296
  },
- "verified": 4990,
+ "verified": 5013,
  "franchises": [
   "AKIRA",
   "BanG Dream!",
