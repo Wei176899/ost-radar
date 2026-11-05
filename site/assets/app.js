@@ -13,7 +13,7 @@
 
   const FMT = { vinyl: "黑膠", "7inch": "7 吋", cd: "CD", cassette: "卡帶" };
   const FMT_LONG = { vinyl: "黑膠 LP", "7inch": "7 吋黑膠", cd: "CD", cassette: "卡帶" };
-  const KIND = { anime: "動畫", game: "遊戲", other: "其他" };
+  const KIND = { anime: "動畫", game: "遊戲", movie: "電影", other: "其他" };
   const SUB = { ost: "原聲帶", song: "歌曲・主題曲", arrange: "改編・演奏" };
   const ST_CLS = { 預購: "pre", 現貨: "stock", 缺貨: "out", 待確認: "unk" };
   const STATUSES = ["預購", "現貨", "待確認", "缺貨"];
@@ -277,7 +277,8 @@
   }
 
   function match(it, skip = "") {
-    if (F.onlyJp && !it.jp) return false;
+    // 「只看日系」不套用在電影原聲帶（多為歐美作品）；選了「電影」類型時一併顯示
+    if (F.onlyJp && !it.jp && !(it.k === "movie" && (F.kind.has("movie") || skip === "kind"))) return false;
     if (skip !== "ch" && skip !== "src" && !F.src.size && F.ch) {               // 指定通路時不受此限制
       if (F.ch === "shop" && MARKET.has(it.s)) return false;
       if (F.ch === "market" && !MARKET.has(it.s)) return false;

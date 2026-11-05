@@ -59,13 +59,20 @@ ARRANGE_RE = re.compile(r"交響|Symphon|Orchestra|オーケストラ|管弦|鋼
 OST_RE = re.compile(r"原聲|原聲帶|配樂|サウンドトラック|サントラ|soundtrack|O\.?S\.?T\.?|\bScore\b|劇伴|音楽集|音樂集", re.I)
 
 
+# 電影（真人）原聲：「劇場版」屬於動畫，不在此列
+MOVIE_RE = re.compile(r"電影原聲|電影配樂|電影音樂|影視原聲|Motion Picture|Film Score|Original Score|映画|サウンドトラック.*映画|"
+                      r"電影版|電影《|電影〈|O\.?S\.?T\.? / ", re.I)
+
+
 def detect_kind(text: str, franchise_kind: str | None) -> str:
-    """anime / game / other"""
+    """anime / game / movie / other"""
     if franchise_kind == "game" or GAME_RE.search(text):
         return "game"
     if franchise_kind in ("anime", "studio") or ANIME_RE.search(text):
         return "anime"
-    return "anime" if franchise_kind == "composer" else "other"
+    if franchise_kind == "composer":
+        return "anime"
+    return "movie" if MOVIE_RE.search(text) else "other"
 
 
 def detect_sub(title: str) -> str:
@@ -173,6 +180,8 @@ def is_relevant(title: str, extra: str, fr: Franchises, *, is_ost: bool = False,
     title = re.sub(r"動態?動畫膠", "", title)  # 「動畫膠」是畫面會動的唱片，不是動畫作品
     if ACG_STRONG_RE.search(title) or fr.match(title):
         return True
+    if MOVIE_RE.search(title) or (is_ost and OST_RE.search(title)):
+        return True  # 電影原聲帶
     weak_title = bool(OST_RE.search(title))
     kana = bool(KANA_RE.search(title))
     if weak_title and kana:

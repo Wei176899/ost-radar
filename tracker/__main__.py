@@ -77,6 +77,8 @@ def plan_queries(src: Source, cfg: dict, quick: bool) -> list[str]:
             qs += [d["aliases"][0] for d in cfg.get("franchises", {}).values()]
         return list(dict.fromkeys(qs))
     for fmt_group, lst in gq.items():
+        if src.marketplace and fmt_group == "movie":
+            continue  # 拍賣只收日系作品，歐美電影原聲不在範圍
         if src.marketplace and fmt_group == "cd":
             qs += lst[:3]  # 拍賣的 CD 雜訊多，只跑前幾個
         else:
@@ -302,7 +304,7 @@ def main():
         news = load_json(OUT_DIR / "news.json", [])  # 不更新新聞時保留現有內容
     else:
         log("收集發售新聞…")
-        news = news_mod.collect(cfg, fr, log)
+        news = news_mod.collect(cfg, fr, log, load_json(OUT_DIR / "news.json", []))
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     STATE_PATH.parent.mkdir(exist_ok=True)

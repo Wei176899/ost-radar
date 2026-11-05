@@ -32,6 +32,14 @@
       "卡帶 遊戲",
       "Cassette Soundtrack",
       "カセット サウンドトラック"
+    ],
+    "movie": [
+      "黑膠 電影原聲帶",
+      "電影原聲帶 CD",
+      "電影配樂 黑膠",
+      "Original Motion Picture Soundtrack",
+      "Film Score LP",
+      "映画 サウンドトラック"
     ]
   },
   "franchise_query_suffix": {

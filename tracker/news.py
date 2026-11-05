@@ -80,8 +80,9 @@ def google_news(cfg: dict, fr: Franchises, log) -> list[dict]:
     return list(out.values())
 
 
-def label_shops(cfg: dict, fr: Franchises, log) -> list[dict]:
+def label_shops(cfg: dict, fr: Franchises, log, prev: list[dict] | None = None) -> list[dict]:
     keep = int(cfg.get("news", {}).get("keep_days", 120))
+    cutoff = (TODAY - timedelta(days=keep)).isoformat()
     out = []
     for shop in cfg.get("news", {}).get("label_shops", []):
         host = shop["host"]
@@ -89,7 +90,10 @@ def label_shops(cfg: dict, fr: Franchises, log) -> list[dict]:
             time.sleep(1)
             prods = requests.get(f"https://{host}/products.json?limit=250", headers=UA, timeout=25).json()["products"]
         except Exception as e:  # noqa: BLE001
-            log(f"  [新聞] {shop['name']} 失敗: {e}")
+            old = [x for x in prev or [] if x.get("type") == "label"
+                   and x.get("source") == shop["name"] and x.get("date", "") >= cutoff]
+            out += old
+            log(f"  [新聞] {shop['name']} 失敗（沿用上次 {len(old)} 項）: {type(e).__name__}")
             continue
         n = 0
         for p in prods:
@@ -154,8 +158,16 @@ def dedupe_news(news: list[dict]) -> list[dict]:
     return out
 
 
-def collect(cfg: dict, fr: Franchises, log) -> list[dict]:
-    gn = dedupe_news(google_news(cfg, fr, log))
-    items = gn + label_shops(cfg, fr, log)
+def collect(cfg: dict, fr: Franchises, log, prev: list[dict] | None = None) -> list[dict]:
+    """prev = 上次的 news.json。來源暫時失敗或回傳較少時，保留期限內的舊消息，避免列表忽多忽少。"""
+    keep = int(cfg.get("news", {}).get("keep_days", 120))
+    cutoff = (TODAY - timedelta(days=keep)).isoformat()
+    fresh = google_news(cfg, fr, log)
+    seen = {n["url"] for n in fresh} | {_norm(n["title"]) for n in fresh}
+    fresh += [n for n in prev or [] if n.get("type") != "label"
+              and n.get("url") not in seen and _norm(n.get("title", "")) not in seen
+              and n.get("date", "") >= cutoff and "title" in n and "lang" in n]
+    gn = dedupe_news(fresh)
+    items = gn + label_shops(cfg, fr, log, prev)
     items.sort(key=lambda x: x["date"], reverse=True)
     return items
