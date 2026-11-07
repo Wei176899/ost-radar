@@ -1,8 +1,8 @@
 {
- "generated": "2026-11-06 10:25",
- "seconds": 1487,
- "total": 7170,
- "news": 236,
+ "generated": "2026-11-07 09:54",
+ "seconds": 1488,
+ "total": 7197,
+ "news": 238,
  "sources": [
   {
    "key": "books",
@@ -18,8 +18,8 @@
    "name": "誠品線上",
    "type": "書店電商",
    "home": "https://www.eslite.com/",
-   "count": 286,
-   "errors": 0,
+   "count": 282,
+   "errors": 1,
    "down": ""
   },
   {
@@ -63,7 +63,7 @@
    "name": "佳佳唱片行",
    "type": "唱片行",
    "home": "https://www.ccr.com.tw/",
-   "count": 19,
+   "count": 17,
    "errors": 0,
    "down": ""
   },
@@ -90,7 +90,7 @@
    "name": "爛調唱片",
    "type": "唱片行",
    "home": "https://www.rottenblues.com/",
-   "count": 362,
+   "count": 364,
    "errors": 0,
    "down": ""
   },
@@ -99,7 +99,7 @@
    "name": "THT 唱片",
    "type": "唱片行",
    "home": "https://www.thtrecords.com/",
-   "count": 705,
+   "count": 710,
    "errors": 0,
    "down": ""
   },
@@ -108,7 +108,7 @@
    "name": "露天拍賣",
    "type": "拍賣",
    "home": "https://www.ruten.com.tw/",
-   "count": 2024,
+   "count": 2049,
    "errors": 0,
    "down": ""
   },
@@ -117,7 +117,7 @@
    "name": "Yahoo 拍賣",
    "type": "拍賣",
    "home": "https://tw.bid.yahoo.com/",
-   "count": 1357,
+   "count": 1358,
    "errors": 0,
    "down": ""
   },
@@ -132,18 +132,18 @@
   }
  ],
  "status": {
-  "預購": 289,
-  "現貨": 4680,
-  "待確認": 928,
-  "缺貨": 1273
+  "預購": 301,
+  "現貨": 4702,
+  "待確認": 927,
+  "缺貨": 1267
  },
  "formats": {
-  "vinyl": 5236,
-  "7inch": 142,
-  "cd": 1479,
-  "cassette": 313
+  "vinyl": 5263,
+  "7inch": 136,
+  "cd": 1478,
+  "cassette": 320
  },
- "verified": 5786,
+ "verified": 5851,
  "franchises": [
   "AKIRA",
   "BanG Dream!",
@@ -196,7 +196,6 @@
   "聖劍傳說",
   "航海王",
   "艾爾登法環",
-  "菅野洋子",
   "葬送的芙莉蓮",
   "薩爾達傳說",
   "超時空要塞",
