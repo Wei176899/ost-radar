@@ -1,7 +1,7 @@
 {
- "generated": "2026-11-10 12:06",
- "seconds": 1486,
- "total": 7171,
+ "generated": "2026-11-11 09:55",
+ "seconds": 1490,
+ "total": 7192,
  "news": 239,
  "sources": [
   {
@@ -54,7 +54,7 @@
    "name": "山海山唱片行",
    "type": "唱片行",
    "home": "https://www.shsmusic.tw/",
-   "count": 794,
+   "count": 796,
    "errors": 0,
    "down": ""
   },
@@ -63,7 +63,7 @@
    "name": "佳佳唱片行",
    "type": "唱片行",
    "home": "https://www.ccr.com.tw/",
-   "count": 13,
+   "count": 17,
    "errors": 0,
    "down": ""
   },
@@ -90,7 +90,7 @@
    "name": "爛調唱片",
    "type": "唱片行",
    "home": "https://www.rottenblues.com/",
-   "count": 363,
+   "count": 368,
    "errors": 0,
    "down": ""
   },
@@ -108,7 +108,7 @@
    "name": "露天拍賣",
    "type": "拍賣",
    "home": "https://www.ruten.com.tw/",
-   "count": 2046,
+   "count": 2045,
    "errors": 0,
    "down": ""
   },
@@ -117,7 +117,7 @@
    "name": "Yahoo 拍賣",
    "type": "拍賣",
    "home": "https://tw.bid.yahoo.com/",
-   "count": 1334,
+   "count": 1345,
    "errors": 0,
    "down": ""
   },
@@ -132,18 +132,18 @@
   }
  ],
  "status": {
-  "預購": 296,
-  "現貨": 4669,
-  "待確認": 1073,
-  "缺貨": 1133
+  "預購": 299,
+  "現貨": 4684,
+  "待確認": 930,
+  "缺貨": 1279
  },
  "formats": {
-  "vinyl": 5270,
-  "7inch": 134,
-  "cd": 1464,
-  "cassette": 303
+  "vinyl": 5285,
+  "7inch": 135,
+  "cd": 1468,
+  "cassette": 304
  },
- "verified": 5611,
+ "verified": 5763,
  "franchises": [
   "AKIRA",
   "BanG Dream!",
