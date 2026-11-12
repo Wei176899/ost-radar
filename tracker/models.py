@@ -10,11 +10,12 @@ TODAY = datetime.now(TW).date()
 
 # 狀態
 PRE, STOCK, OUT, UNKNOWN = "預購", "現貨", "缺貨", "待確認"
+ORDER = "可訂購"   # 可下單但通路需向海外／廠商調貨（不是現貨，也不是新品預購）
+STATUSES = (PRE, STOCK, ORDER, UNKNOWN, OUT)
 
 SOURCE_META = {
     "books": {"name": "博客來", "type": "書店電商", "home": "https://www.books.com.tw/"},
     "eslite": {"name": "誠品線上", "type": "書店電商", "home": "https://www.eslite.com/"},
-    "pchome": {"name": "PChome 24h", "type": "綜合電商", "home": "https://24h.pchome.com.tw/"},
     "gmusic": {"name": "玫瑰大眾", "type": "唱片行", "home": "https://www.g-music.com.tw/"},
     "candlelight": {"name": "燭光唱片", "type": "唱片行", "home": "https://www.candlelightrecords.tw/"},
     "shs": {"name": "山海山唱片行", "type": "唱片行", "home": "https://www.shsmusic.tw/"},
@@ -61,6 +62,7 @@ class Item:
     # 歷史
     first_seen: str = ""
     flags: list[str] = field(default_factory=list)
+    checked: str = ""          # 狀態最後確認日 YYYY-MM-DD
 
     @property
     def key(self) -> str:

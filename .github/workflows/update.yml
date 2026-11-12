@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths: ["site/**", "!site/data/**"]
+    paths: ["site/**"]   # 網站程式或本機補抓的資料（機器人的提交不會觸發）
 
 permissions: {}
 

@@ -665,7 +665,6 @@
   "sources": {
     "books": true,
     "eslite": true,
-    "pchome": true,
     "gmusic": true,
     "candlelight": true,
     "shs": true,

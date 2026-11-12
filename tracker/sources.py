@@ -15,7 +15,7 @@ from urllib.parse import quote
 import requests
 from bs4 import BeautifulSoup
 
-from .models import (OUT, PRE, STOCK, UNKNOWN, Item, clean, is_future, month_day, norm_barcode, norm_date,
+from .models import (ORDER, OUT, PRE, STOCK, UNKNOWN, Item, clean, is_future, month_day, norm_barcode, norm_date,
                      title_says_preorder, to_int)
 
 UA = {
@@ -49,6 +49,7 @@ class Source:
         self.limit = int(cfg.get("results_per_query", 40))
         self.fails = 0
         self.down = ""            # 非空字串 = 已停止此通路的原因
+        self.partial = False      # 分類頁中途失敗：本次結果不完整，缺少的商品沿用上次資料
         self.deadline = float("inf")
 
     def set_budget(self, minutes: float) -> None:
@@ -185,7 +186,7 @@ class Eslite(Source):
             elif is_future(release) or title_says_preorder(title):
                 status = PRE
             elif st == "add_to_shopping_cart":
-                status = STOCK if stock > 0 else UNKNOWN
+                status = STOCK if stock > 0 else ORDER
             else:
                 status = UNKNOWN
             photo = f.get("product_photo_url", "")
@@ -225,61 +226,12 @@ class Eslite(Source):
                 it.status = PRE
                 it.deadline = norm_date(d.get("sale_mode_end_date") or "")
             elif btn == "add_to_shopping_cart":
-                it.status = STOCK if (it.stock or 0) > 0 else UNKNOWN
+                it.status = STOCK if (it.stock or 0) > 0 else ORDER
                 if not it.stock:
-                    it.note = "可下單（需調貨）"
+                    it.note = "需調貨"
             else:
                 it.status = OUT
         self.log(f"  [誠品] 已複查 {n} 筆")
-
-
-# ======================================================================= PChome
-class PChome(Source):
-    key = "pchome"
-    generic_only = True
-
-    def search(self, q):
-        data = self.get(f"https://ecshweb.pchome.com.tw/search/v3.3/all/results?q={quote(q)}&page=1").json()
-        out = []
-        for p in (data.get("prods") or [])[: self.limit]:
-            pic = p.get("picB") or p.get("picS") or ""
-            it = Item("pchome", p["Id"], clean(p.get("name")), f"https://24h.pchome.com.tw/prod/{p['Id']}",
-                      to_int(p.get("price")), UNKNOWN, norm_date(p.get("publishDate", "")),
-                      f"https://cs-a.ecimg.tw{pic}" if pic else "")
-            it.extra = clean(p.get("describe", ""))[:400]
-            out.append(it)
-        return out
-
-    def verify(self, items, state, limit):
-        ids = [it.pid for it in items]
-        by = {it.pid: it for it in items}
-        for i in range(0, len(ids), 20):
-            chunk = ids[i:i + 20]
-            try:
-                rows = self.get("https://ecapi.pchome.com.tw/ecshop/prodapi/v2/prod/button&id="
-                                + ",".join(chunk) + "&fields=Id,Price,Qty,ButtonType,SaleStatus").json()
-            except Exception as e:  # noqa: BLE001
-                self.log(f"  [PChome] 庫存查詢失敗: {e}")
-                continue
-            info = {}
-            for row in rows:
-                base = row["Id"].rsplit("-", 1)[0]
-                if base not in info or row.get("ButtonType") == "ForSale":
-                    info[base] = row
-            for pid in chunk:
-                it, row = by[pid], info.get(pid)
-                if not row:
-                    continue
-                it.verified = True
-                it.stock = to_int(row.get("Qty"))
-                bt = row.get("ButtonType", "")
-                if bt == "ForSale":
-                    it.status = PRE if (title_says_preorder(it.title) or is_future(it.release)) else STOCK
-                elif bt in ("SoldOut", "NotReady", "OrderRefill", "Discontinued"):
-                    it.status = OUT
-                p = (row.get("Price") or {}).get("P")
-                if p:
-                    it.price = to_int(p)
 
 
 # ======================================================================= 玫瑰大眾
@@ -346,6 +298,7 @@ class Candlelight(Source):
                     r = self.get(f"https://www.candlelightrecords.tw/category/{cat}?page={page}")
                 except Exception as e:  # noqa: BLE001
                     self.log(f"  [燭光] 分類 {cat} 第 {page} 頁失敗: {e}")
+                    self.partial = True
                     break
                 soup = BeautifulSoup(r.text, "html.parser")
                 lis = soup.select("ul.js_product_block > li")
@@ -495,6 +448,7 @@ class Shs(Source):
                     r = self.get(f"https://www.shsmusic.tw/tw/product/index.php?kind={kind}&page={page}")
                 except Exception as e:  # noqa: BLE001
                     self.log(f"  [山海山] 分類 {kind} 第 {page} 頁失敗: {e}")
+                    self.partial = True
                     break
                 soup = BeautifulSoup(r.text, "html.parser")
                 cards = soup.select(".pro-list .item[data-num]")
@@ -546,10 +500,10 @@ class Shs(Source):
                 it.status = STOCK
             elif is_future(it.release):
                 it.status = PRE
-            elif state_txt == "需預購":  # 已發行但需向海外訂購，不算預購
-                it.status, it.note = UNKNOWN, "可下單（海外調貨約一個月）"
+            elif state_txt == "需預購":  # 已發行但需向海外訂購，不算新品預購
+                it.status, it.note = ORDER, "海外調貨約一個月"
             elif state_txt == "需調貨":
-                it.status, it.note = UNKNOWN, "可下單（需調貨）"
+                it.status, it.note = ORDER, "需調貨"
             elif state_txt in ("已售完", "絕版"):
                 it.status = OUT
         self.log(f"  [山海山] 已複查 {n} 筆")
@@ -590,38 +544,98 @@ class MyAcg(Source):
 
 
 # ======================================================================= 佳佳唱片行
-CCR_LISTS = [("PreGoods.php", "4"), ("PreGoods.php", "LP"), ("release.php", "4"), ("release.php", "LP")]  # 日文 / 黑膠
+# 分類頁以 /block/goods.php 分頁載入（每頁 20 筆，新到舊），價格與庫存由 /block/PriceStock.php 批次回傳
+CCR_LISTS = {"65": "cd", "34": "vinyl", "31": "vinyl"}  # CD 日本原聲帶、黑膠原聲帶、黑膠日本
+CCR_PRE = [("PreGoods.php", "4"), ("PreGoods.php", "LP")]     # 預購：日文 / 黑膠
+CCR_PRICE_RE = re.compile(r"\.article_(\d+) \.item_price'\)\.html\('([^']*)'\)")
+CCR_CART_RE = re.compile(r"\.article_(\d+) \.item_shop button\.cart'\)\.show")
 
 
 class Ccr(Source):
     key = "ccr"
     catalog = True
+    host = "https://www.ccr.com.tw"
+
+    def _parse(self, html_text: str, out: dict, hint: str | None, pre: bool, ost: bool = False) -> int:
+        fresh = 0
+        for tb in BeautifulSoup(html_text, "html.parser").select("[data-id]"):
+            pid = tb["data-id"]
+            if not pid.isdigit():
+                continue
+            if pid in out:
+                if pre:
+                    out[pid].status = PRE
+                continue
+            one = lambda sel: clean(tb.select_one(sel).get_text()) if tb.select_one(sel) else ""  # noqa: E731
+            a = tb.select_one(".item_article")
+            title = clean(a.get("title") or a.get_text()) if a else one("a[title]")
+            if not title and tb.select_one("a[title]"):
+                title = clean(tb.select_one("a[title]")["title"])
+            artist, spec = one(".item_artist"), one(".item_spec")
+            box = tb.select_one(".item_img")
+            m = re.search(r"url\(([^)]+)\)", box.get("style", "")) if box else None
+            img = m.group(1).strip("'\"") if m else ""
+            it = Item("ccr", pid, f"{artist} {title} {spec}".strip(), f"{self.host}/goods/{pid}", None,
+                      PRE if pre else UNKNOWN, norm_date(one(".item_publish")),
+                      (self.host + img.replace("/thumb/200_", "/")) if img.startswith("/") else img,
+                      seller=artist)
+            it.fmt_hint = ("vinyl" if "黑膠" in spec or "LP" in spec.upper() or "アナログ" in title
+                           else "cd" if "CD" in spec.upper() else hint)
+            it.note = one(".item_place")
+            it.is_ost = ost
+            out[pid] = it
+            fresh += 1
+        return fresh
 
     def crawl(self):
         out: dict[str, Item] = {}
-        for page, s in CCR_LISTS:
+        pages = int(self.cfg.get("ccr_pages", 12))
+        for lid, hint in CCR_LISTS.items():
+            for page in range(1, pages + 1):
+                try:
+                    r = self.post(f"{self.host}/block/goods.php", data={"I": lid, "P": page, "PageType": "P"},
+                                  headers={"Referer": f"{self.host}/List/{lid}"})
+                except SourceDown:
+                    break
+                except Exception as e:  # noqa: BLE001
+                    self.log(f"  [佳佳] 分類 {lid} 第 {page} 頁失敗: {e}")
+                    self.partial = True
+                    break
+                if not self._parse(r.text, out, hint, False, ost=lid != "31"):
+                    break
+        for page, s in CCR_PRE:
             try:
-                r = self.get(f"https://www.ccr.com.tw/{page}?S={s}")
+                r = self.get(f"{self.host}/{page}?S={s}")
             except Exception as e:  # noqa: BLE001
                 self.log(f"  [佳佳] {page}?S={s} 失敗: {e}")
+                self.partial = True
                 continue
-            for tb in BeautifulSoup(r.text, "html.parser").select("tbody.item_row[data-id]"):
-                pid = tb["data-id"]
-                if pid in out:
-                    continue
-                art = tb.select_one(".item_artist")
-                ttl = tb.select_one(".item_article")
-                spec = clean(tb.select_one(".item_spec").get_text()) if tb.select_one(".item_spec") else ""
-                place = clean(tb.select_one(".item_place").get_text()) if tb.select_one(".item_place") else ""
-                pub = clean(tb.select_one(".item_publish").get_text()) if tb.select_one(".item_publish") else ""
-                title = clean(ttl.get("title") or ttl.get_text()) if ttl else ""
-                artist = clean(art.get_text()) if art else ""
-                it = Item("ccr", pid, f"{artist} {title} {spec}".strip(), f"https://www.ccr.com.tw/goods/{pid}",
-                          None, PRE if page == "PreGoods.php" else UNKNOWN, norm_date(pub), seller=artist)
-                it.fmt_hint = "vinyl" if s == "LP" or "LP" in spec.upper() else ("cd" if "CD" in spec.upper() else None)
-                it.note = place
-                out[pid] = it
+            self._parse(r.text, out, "vinyl" if s == "LP" else None, True)
+        self._price_stock(list(out.values()))
         return list(out.values())
+
+    def _price_stock(self, items: list[Item]) -> None:
+        """列表頁的價格／庫存：『NT. 1,199』且顯示購物車 = 可購買；『無庫存』= 缺貨。"""
+        for i in range(0, len(items), 40):
+            chunk = items[i:i + 40]
+            try:
+                js = self.post(f"{self.host}/block/PriceStock.php", data={"I": ",".join(x.pid for x in chunk)},
+                               headers={"Referer": f"{self.host}/List/65"}).text
+            except Exception as e:  # noqa: BLE001
+                self.log(f"  [佳佳] 價格庫存失敗: {e}")
+                continue
+            price = dict(CCR_PRICE_RE.findall(js))
+            cart = set(CCR_CART_RE.findall(js))
+            for it in chunk:
+                txt = price.get(it.pid)
+                if txt is None:
+                    continue
+                it.verified = True
+                it.price = to_int(re.sub(r"[^\d]", "", txt)) or it.price
+                if it.pid in cart:
+                    it.status = PRE if (it.status == PRE or is_future(it.release)) else STOCK
+                elif "無庫存" in txt:
+                    it.status = PRE if is_future(it.release) and it.status == PRE else OUT
 
     def verify(self, items, state, limit):
         n = 0
@@ -660,8 +674,8 @@ class Ccr(Source):
 
 
 # ======================================================================= 小白兔唱片
-WWR_RE = re.compile(r'"name":"((?:[^"\\]|\\.)*)","type":"album","price":(\d+),"vipPrice":\d+,"stockQuantity":(-?\d+)'
-                    r'.*?"slug":"([^"]+)","images":\[("[^"]*")?')
+# 搜尋頁內嵌 Next.js 資料：每個商品是 "/productList/<id>":{...} 物件（欄位順序不固定，逐一以 JSON 解析）
+WWR_KEY_RE = re.compile(r'"/productList/[0-9A-Z]+":\{')
 
 
 class Wwr(Source):
@@ -669,26 +683,33 @@ class Wwr(Source):
     bare_franchise = True
 
     def search(self, q):
-        t = self.get(f"https://wwr.com.tw/search?q={quote(q)}").text
-        t = t.replace('\\"', '"')
+        t = self.get(f"https://wwr.com.tw/search?q={quote(q)}").text.replace('\\"', '"')
+        dec = json.JSONDecoder()
         out, seen = [], set()
-        for name, price, qty, slug, img in WWR_RE.findall(t):
-            if slug in seen:
+        for m in WWR_KEY_RE.finditer(t):
+            try:
+                p, _ = dec.raw_decode(t, m.end() - 1)
+            except ValueError:
+                continue
+            slug = p.get("slug")
+            if p.get("type") != "album" or not slug or slug in seen:
                 continue
             seen.add(slug)
-            try:
-                name = json.loads(f'"{name}"')
-            except ValueError:
-                pass
-            qty = int(qty)
-            title = clean(name)
+            title = clean(p.get("name"))
+            qty = to_int(p.get("stockQuantity")) or 0
+            year = str((p.get("tags") or {}).get("releaseYear") or "")
             status = PRE if title_says_preorder(title) else (STOCK if qty > 0 else OUT)
-            it = Item("wwr", slug, title, f"https://wwr.com.tw/albums/{slug}", int(price), status,
-                      image=f"https://fs.wwr.com.tw/img/{img.strip(chr(34))}" if img else "")
-            it.stock, it.verified = max(qty, 0), True
-            it.fmt_hint = "vinyl" if "[Vinyl]" in title else ("cd" if "[CD]" in title else None)
+            imgs = p.get("images") or []
+            it = Item("wwr", slug, title, f"https://wwr.com.tw/albums/{slug}", to_int(p.get("price")), status,
+                      image=f"https://fs.wwr.com.tw/img/{imgs[0]}" if imgs else "")
+            it.stock, it.verified = max(qty, 0), True  # 搜尋頁即含即時庫存
+            it.fmt_hint = ("vinyl" if re.search(r"\[(?:Vinyl|LP)", title, re.I) else
+                           "cassette" if re.search(r"\[(?:Cassette|MC)\]|卡帶", title, re.I) else
+                           "cd" if "[CD]" in title else None)
+            it.is_ost = bool(re.search(r"原聲|Soundtrack|O\.?S\.?T", title, re.I))
+            it.extra = year
             out.append(it)
-            if len(out) >= self.limit * 2:
+            if len(out) >= self.limit * 3:
                 break
         return out
 
@@ -805,6 +826,7 @@ class Tht(Source):
                     return list(out.values())
                 except Exception as e:  # noqa: BLE001
                     self.log(f"  [THT] {col} 第 {page} 頁失敗: {e}")
+                    self.partial = True
                     break
                 cards = BeautifulSoup(r.text, "html.parser").select("#main-collection-product-grid > li")
                 fresh = 0
@@ -845,5 +867,5 @@ class Tht(Source):
         return list(out.values())
 
 
-SOURCES = {c.key: c for c in (Books, Eslite, PChome, GMusic, Candlelight, Shs, Ccr, Wwr, FiveMusic,
+SOURCES = {c.key: c for c in (Books, Eslite, GMusic, Candlelight, Shs, Ccr, Wwr, FiveMusic,
                               RottenBlues, Tht, Ruten, Yahoo, MyAcg)}

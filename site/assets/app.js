@@ -15,15 +15,21 @@
   const FMT_LONG = { vinyl: "黑膠 LP", "7inch": "7 吋黑膠", cd: "CD", cassette: "卡帶" };
   const KIND = { anime: "動畫", game: "遊戲", movie: "電影", other: "其他" };
   const SUB = { ost: "原聲帶", song: "歌曲・主題曲", arrange: "改編・演奏" };
-  const ST_CLS = { 預購: "pre", 現貨: "stock", 缺貨: "out", 待確認: "unk" };
-  const STATUSES = ["預購", "現貨", "待確認", "缺貨"];
+  const ST_CLS = { 預購: "pre", 現貨: "stock", 可訂購: "ord", 缺貨: "out", 待確認: "unk" };
+  const STATUSES = ["預購", "現貨", "可訂購", "待確認", "缺貨"];
   const TAGS = ["限定盤", "彩膠", "日版", "台灣版", "BOX", "附特典", "180g", "代購", "二手"];
   const MARKET = new Set(["ruten", "yahoo", "myacg"]); // 載入後依 meta 的通路類型更新
   const TODAY = new Date().toISOString().slice(0, 10);
 
   let ITEMS = [], NEWS = [], META = {}, SRC = {};
   const GROUPS = new Map();          // 比價群組 g → 同一商品在各通路的報價
-  const BUYABLE = new Set(["現貨", "預購", "待確認"]);
+  const BUYABLE = new Set(["現貨", "預購", "可訂購", "待確認"]);
+  const STALE_DAYS = 5;
+  // 資料確認日距今天數（ck = 通路狀態最後確認日；舊資料沒有 ck 時以資料產生日為準）
+  const ageDays = (it) => {
+    const d = it.ck || (META.generated || "").slice(0, 10);
+    return d ? Math.max(0, Math.round((Date.parse(TODAY) - Date.parse(d)) / 864e5)) : 0;
+  };
 
   /* ------------------------------------------------------------ data */
   async function load() {
@@ -44,7 +50,7 @@
   // 組內可購買的最低價（拍賣誘餌價已在資料端排除，這裡再過濾低於 250 元的報價）
   function offerInfo(it) {
     const all = (it.g && GROUPS.get(it.g)) || [it];
-    const ok = all.filter((o) => BUYABLE.has(o.st) && (o.p || 0) >= 250);
+    const ok = all.filter((o) => BUYABLE.has(o.st) && (o.p || 0) >= 250 && ageDays(o) <= 3);
     const low = ok.length ? Math.min(...ok.map((o) => o.p)) : null;
     return { all, ok, low, stores: new Set(all.map((o) => o.s)).size };
   }
@@ -83,7 +89,7 @@
     return it.r > TODAY ? `${+m}/${+d} 發售` : `${y}.${m}`;
   }
   const relLong = (r) => { const [y, m, d] = r.split("-"); return d ? `${y}.${m}.${d}` : `${y} 年 ${+m} 月（預計）`; };
-  const stLabel = (it) => (it.st === "待確認" && /可訂購|可下單/.test(it.n || "") ? "可訂購" : it.st);
+  const stLabel = (it) => it.st;
   function card(it, { tag = "button" } = {}) {
     const st = ST_CLS[it.st] || "unk";
     const flags = (it.fl || []).slice(0, 1).map((f) => `<span class="pill flag">${esc(f.replace(/ .*/, ""))}</span>`).join("");
@@ -91,7 +97,9 @@
     if (it.r && it.st === "預購") sub.push(`<span>${esc(relLabel(it))}</span>`);
     const sales = salesBits(it);
     sales.forEach((b) => sub.push(`<span class="${/剩/.test(b) ? "warn" : "v"}">${esc(b)}</span>`));
-    if (!sales.length && it.v) sub.push(`<span class="v">✓ 已複查</span>`);
+    const age = ageDays(it);
+    if (age >= 2) sub.push(`<span class="${age >= STALE_DAYS ? "warn" : ""}">${age} 天前資料</span>`);
+    else if (!sales.length && it.v) sub.push(`<span class="v">✓ 已複查</span>`);
     if (it.fr && sub.length < 3) sub.push(`<span>${esc(it.fr)}</span>`);
     const oi = offerInfo(it);
     const cmp = oi.stores > 1
@@ -294,7 +302,7 @@
     if (F.q) { for (const w of F.q.toLowerCase().split(/\s+/)) if (w && !it._q.includes(w)) return false; }
     return true;
   }
-  const ORDER = { 預購: 0, 現貨: 1, 待確認: 2, 缺貨: 3 };
+  const ORDER = { 預購: 0, 現貨: 1, 可訂購: 2, 待確認: 3, 缺貨: 4 };
   const SORTS = {
     smart: (a, b) => ((b.fl || []).length > 0) - ((a.fl || []).length > 0) || ORDER[a.st] - ORDER[b.st] || MARKET.has(a.s) - MARKET.has(b.s) || (b.v - a.v) || (b.r || "").localeCompare(a.r || ""),
     release: (a, b) => (b.r || "").localeCompare(a.r || ""),
@@ -358,7 +366,7 @@
   function applyFilters({ anchor = true, keepPage = false } = {}) {
     let list = ITEMS.filter((i) => match(i));
     if (F.merge) { // 同一商品只顯示一張卡：有貨優先、其次最低價
-      const rank = { 現貨: 0, 預購: 1, 待確認: 2, 缺貨: 3 };
+      const rank = { 現貨: 0, 預購: 1, 可訂購: 2, 待確認: 3, 缺貨: 4 };
       const by = new Map();
       list.forEach((i) => {
         const k = i.g || i.id, cur = by.get(k);
@@ -495,9 +503,13 @@
   function openSheet(it, { push = true } = {}) {
     lastFocus = document.activeElement;
     const st = ST_CLS[it.st] || "unk";
-    const ver = it.v
-      ? `<span class="ver">✓ ${esc(META.generated?.slice(5, 10).replace("-", "/") || "")} 複查${it.q != null && it.st !== "缺貨" ? `・庫存 ${it.q}` : ""}</span>`
-      : `<span class="ver no">未複查</span>`;
+    const ckDate = shortDate(it.ck || (META.generated || "").slice(0, 10));
+    const age = ageDays(it);
+    const ver = age >= STALE_DAYS
+      ? `<span class="ver no">${esc(ckDate)} 之後未能更新</span>`
+      : it.v
+        ? `<span class="ver">✓ ${esc(ckDate)} 確認${it.q != null && it.st !== "缺貨" ? `・庫存 ${it.q}` : ""}</span>`
+        : `<span class="ver no">${esc(ckDate)} 列表資料・未複查</span>`;
     const rows = [
       ["格式", `${esc(FMT_LONG[it.f] || it.f)}${it.d ? `（${esc(it.d)} 張）` : ""}`],
       ["類型", `${KIND[it.k] || ""}・${SUB[it.sb] || ""}`],

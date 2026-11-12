@@ -1,35 +1,26 @@
 {
- "generated": "2026-11-12 10:57",
- "seconds": 1484,
- "total": 7198,
- "news": 235,
+ "generated": "2026-11-12 21:21",
+ "seconds": 843,
+ "total": 7849,
+ "news": 236,
  "sources": [
   {
    "key": "books",
    "name": "博客來",
    "type": "書店電商",
    "home": "https://www.books.com.tw/",
-   "count": 284,
-   "errors": 6,
-   "down": "連續 6 次連線失敗（可能封鎖海外連線）"
+   "count": 285,
+   "errors": 2,
+   "down": ""
   },
   {
    "key": "eslite",
    "name": "誠品線上",
    "type": "書店電商",
    "home": "https://www.eslite.com/",
-   "count": 286,
+   "count": 288,
    "errors": 0,
    "down": ""
-  },
-  {
-   "key": "pchome",
-   "name": "PChome 24h",
-   "type": "綜合電商",
-   "home": "https://24h.pchome.com.tw/",
-   "count": 0,
-   "errors": 0,
-   "down": "本次未取得資料"
   },
   {
    "key": "gmusic",
@@ -45,9 +36,9 @@
    "name": "燭光唱片",
    "type": "唱片行",
    "home": "https://www.candlelightrecords.tw/",
-   "count": 658,
+   "count": 664,
    "errors": 0,
-   "down": "連續 6 次連線失敗（可能封鎖海外連線）"
+   "down": ""
   },
   {
    "key": "shs",
@@ -56,14 +47,14 @@
    "home": "https://www.shsmusic.tw/",
    "count": 796,
    "errors": 0,
-   "down": "本次未取得資料"
+   "down": ""
   },
   {
    "key": "ccr",
    "name": "佳佳唱片行",
    "type": "唱片行",
    "home": "https://www.ccr.com.tw/",
-   "count": 11,
+   "count": 466,
    "errors": 0,
    "down": ""
   },
@@ -72,7 +63,7 @@
    "name": "小白兔唱片",
    "type": "唱片行",
    "home": "https://wwr.com.tw/",
-   "count": 21,
+   "count": 206,
    "errors": 0,
    "down": ""
   },
@@ -99,7 +90,7 @@
    "name": "THT 唱片",
    "type": "唱片行",
    "home": "https://www.thtrecords.com/",
-   "count": 713,
+   "count": 712,
    "errors": 0,
    "down": ""
   },
@@ -117,7 +108,7 @@
    "name": "Yahoo 拍賣",
    "type": "拍賣",
    "home": "https://tw.bid.yahoo.com/",
-   "count": 1346,
+   "count": 1349,
    "errors": 0,
    "down": ""
   },
@@ -127,23 +118,25 @@
    "type": "拍賣",
    "home": "https://www.myacg.com.tw/",
    "count": 28,
-   "errors": 6,
-   "down": "連續 6 次連線失敗（可能封鎖海外連線）"
+   "errors": 0,
+   "down": ""
   }
  ],
  "status": {
-  "預購": 300,
-  "現貨": 4687,
-  "待確認": 930,
-  "缺貨": 1281
+  "預購": 286,
+  "現貨": 4842,
+  "可訂購": 511,
+  "待確認": 369,
+  "缺貨": 1841
  },
+ "stale": 0,
  "formats": {
-  "vinyl": 5281,
-  "7inch": 138,
-  "cd": 1470,
-  "cassette": 309
+  "vinyl": 5609,
+  "7inch": 142,
+  "cd": 1786,
+  "cassette": 312
  },
- "verified": 5423,
+ "verified": 7379,
  "franchises": [
   "AKIRA",
   "BanG Dream!",
@@ -174,6 +167,7 @@
   "惡靈古堡",
   "惡魔城",
   "攻殼機動隊",
+  "斯普拉遁",
   "新世紀福音戰士",
   "新海誠",
   "星之卡比",

@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import hashlib
+from datetime import date, timedelta
 import re
 from collections import defaultdict
 
@@ -87,6 +88,11 @@ def compatible(a: dict, b: dict) -> bool:
     return True
 
 
+def fresh(row: dict, days: int = 3) -> bool:
+    ck = row.get("ck") or ""
+    return not ck or ck >= (date.today() - timedelta(days=days)).isoformat()
+
+
 def group(rows: list[dict], threshold: float = 0.62, markets: set[str] | None = None) -> None:
     """就地寫入 g（組別 id）、gn（組內筆數）、best（是否為組內可購買最低價）。"""
     MARKETS.clear()
@@ -146,8 +152,11 @@ def group(rows: list[dict], threshold: float = 0.62, markets: set[str] | None = 
     for members in groups.values():
         gid = hashlib.sha1(min(rows[i]["id"] for i in members).encode()).hexdigest()[:10]
         # 可購買且價格合理（拍賣常有 1 元、外幣或誘餌價，低於 250 元不列入最低價）
-        buyable = [i for i in members if rows[i]["st"] in ("現貨", "預購", "待確認") and (rows[i].get("p") or 0) >= 250]
-        best = min(buyable, key=lambda i: (rows[i]["st"] != "現貨", rows[i]["p"]), default=None) if buyable else None
+        # 超過 3 天沒確認的價格可能已變動，不參與比價
+        buyable = [i for i in members if rows[i]["st"] in ("現貨", "預購", "可訂購", "待確認")
+                   and (rows[i].get("p") or 0) >= 250 and fresh(rows[i])]
+        rank = {"現貨": 0, "預購": 1, "可訂購": 2}
+        best = min(buyable, key=lambda i: (rank.get(rows[i]["st"], 3), rows[i]["p"]), default=None) if buyable else None
         low = min((rows[i]["p"] for i in buyable), default=None)
         for i in members:
             rows[i]["g"] = gid

@@ -16,6 +16,8 @@ python -m http.server 8000 --bind 127.0.0.1 --directory site
 
 設定：`tracker/config.json`
 
+部分通路不接受海外連線，雲端排程會沿用上次資料。可在台灣網路以 `local-refresh.bat` 補抓並推送。
+
 ## 授權與聲明
 
 商品資料、圖片與相關權利屬原通路及權利人所有，本站內容僅供參考。
