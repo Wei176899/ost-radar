@@ -673,6 +673,7 @@
     "fivemusic": true,
     "rottenblues": true,
     "tht": true,
+    "cosmic": true,
     "ruten": true,
     "yahoo": true,
     "myacg": true
@@ -758,6 +759,7 @@
     "keep_days": 120
   },
   "search_budget_min": 25,
+  "cosmic_crawl_budget_min": 40,
   "verify_budget_min": 15,
   "links": [
     {

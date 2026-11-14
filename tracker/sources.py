@@ -15,6 +15,7 @@ from urllib.parse import quote
 import requests
 from bs4 import BeautifulSoup
 
+from .classify import MOVIE_RE
 from .models import (ORDER, OUT, PRE, STOCK, UNKNOWN, Item, clean, is_future, month_day, norm_barcode, norm_date,
                      title_says_preorder, to_int)
 
@@ -36,6 +37,7 @@ class Source:
     marketplace = False      # 拍賣：作品關鍵字只跑黑膠 / 卡帶
     catalog = False          # 不用關鍵字，直接爬分類頁
     bare_franchise = False   # 作品關鍵字不加「黑膠」「原聲帶 CD」等後綴
+    tentative = False        # 列表頁的狀態只是暫定，近期的複查結果優先
 
     timeout = 20                # 每個請求的逾時秒數
     MAX_CONSECUTIVE_FAILS = 6   # 連續失敗這麼多次就判定此通路擋連線，停止嘗試
@@ -867,5 +869,112 @@ class Tht(Source):
         return list(out.values())
 
 
+# ======================================================================= 宇宙唱片（EasyStore）
+# 分類 → 輔助判斷作品類型的描述。依序抓取，同一商品以先出現的分類為準：
+# 遊戲、動畫分類在前；後面的電影配樂分類剩下的多半是歐美電影原聲（品名本身有動畫／遊戲字樣仍以品名為準）
+COSMIC_COLLECTIONS = {
+    "遊戲配樂-1": "遊戲原聲帶", "遊戲配樂": "遊戲原聲帶",
+    "動畫音樂-1": "動畫原聲帶", "動畫音樂": "動畫原聲帶", "吉卜力系列": "", "新海誠": "",
+    "原聲帶-ost-1": "電影原聲帶", "電影配樂-1": "電影原聲帶", "電影配樂": "電影原聲帶",
+    "hans-zimmer-大師配樂專區": "電影原聲帶", "netflix-原聲帶": "影視原聲",
+}
+COSMIC_RELEASE_RE = re.compile(r"發行日\s*[:：]\s*(?:<[^>]+>\s*)*(\d{4}[/.-]\d{1,2}(?:[/.-]\d{1,2})?)")
+
+
+class Cosmic(Source):
+    """列表頁只標示能否購買；商品頁的規格分「現貨」「預購」兩種，並含發行日與條碼。"""
+    key = "cosmic"
+    catalog = True
+    tentative = True
+    timeout = 90   # 動態頁面產生很慢（數十秒），靜態檔案則正常
+    host = "https://www.cosmicmusicrecord.com"
+
+    def crawl(self):
+        self.set_budget(float(self.cfg.get("cosmic_crawl_budget_min", 40)))
+        out: dict[str, Item] = {}
+        for col in COSMIC_COLLECTIONS:
+            for page in range(1, 40):
+                try:
+                    r = self.get(f"{self.host}/collections/{quote(col)}?limit=50&page={page}")
+                except SourceDown:
+                    return list(out.values())
+                except Exception as e:  # noqa: BLE001
+                    self.log(f"  [宇宙] {col} 第 {page} 頁失敗: {e}")
+                    self.partial = True
+                    break
+                cards = BeautifulSoup(r.text, "html.parser").select("#main-collection-product-grid > li")
+                fresh = 0
+                for li in cards:
+                    extra = COSMIC_COLLECTIONS[col]
+                    badge = li.select_one("[data-product-id]")
+                    a = li.select_one('a[href*="/products/"]')
+                    name = li.select_one(".card-information__text")
+                    if not badge or not a or not name:
+                        continue
+                    pid = badge["data-product-id"]
+                    if pid in out:
+                        continue
+                    fresh += 1
+                    title = clean(name.get_text())
+                    img = li.select_one("img")
+                    src = (img.get("src") or "").split("?")[0] if img else ""
+                    available = badge.get("data-product-available") == "1"
+                    # 列表只標示能否下單：現貨或預購調貨要到商品頁才分得出來（複查），先暫定「可訂購」
+                    it = Item("cosmic", pid, title, f"{self.host}/products/{a['href'].split('/products/', 1)[1]}",
+                              to_int(badge.get("data-product-price")), ORDER if available else OUT,
+                              image=f"{src}?width=600" if src else "")
+                    it.note = "可下單，現貨或預購調貨以商品頁為準" if available else ""
+                    it.verified = not available
+                    if extra == "動畫原聲帶" and MOVIE_RE.search(title):
+                        extra = ""  # 「動畫／電影音樂」混合分類：品名寫明是電影的不當動畫
+                    it.is_ost, it.extra = True, extra
+                    out[pid] = it
+                if not fresh or len(cards) < 50:
+                    break
+        return list(out.values())
+
+    def verify(self, items, state, limit):
+        n = 0
+        for it in items[:limit]:
+            try:
+                html_ = self.get(it.url).text
+            except SourceDown:
+                break
+            except Exception as e:  # noqa: BLE001
+                self.log(f"  [宇宙] 複查失敗 {it.pid}: {e}")
+                continue
+            m = re.search(r'"variants"\s*:\s*(\[)', html_)
+            try:
+                variants = json.JSONDecoder().raw_decode(html_, m.start(1))[0] if m else []
+            except ValueError:
+                variants = []
+            if not variants:
+                continue
+            n += 1
+            it.verified, it.note = True, ""
+            m = COSMIC_RELEASE_RE.search(html_)
+            if m:
+                d = m.group(1).replace(".", "/").replace("-", "/")
+                parts = d.split("/")
+                it.release = norm_date(d) if len(parts) == 3 else f"{parts[0]}-{int(parts[1]):02d}"
+            it.barcode = next((norm_barcode(v.get("barcode")) for v in variants if norm_barcode(v.get("barcode"))), "")
+            on = [v for v in variants if v.get("available") and v.get("is_enabled", True)]
+            stock = [v for v in on if "預購" not in (v.get("option1") or v.get("title") or "")]
+            if stock:
+                it.status = STOCK
+                qty = sum(int(v.get("inventory_quantity") or 0) for v in stock)
+                it.stock = qty if qty > 0 and not any(v.get("infinite_stock") for v in stock) else None
+                it.price = to_int((stock[0].get("price") or 0) / 100) or it.price
+            elif on:
+                it.price = to_int((on[0].get("price") or 0) / 100) or it.price
+                if is_future(it.release):
+                    it.status = PRE
+                else:
+                    it.status, it.note = ORDER, "預購調貨，約 10–35 天到貨"
+            else:
+                it.status = OUT
+        self.log(f"  [宇宙] 已複查 {n} 筆")
+
+
 SOURCES = {c.key: c for c in (Books, Eslite, GMusic, Candlelight, Shs, Ccr, Wwr, FiveMusic,
-                              RottenBlues, Tht, Ruten, Yahoo, MyAcg)}
+                              RottenBlues, Tht, Cosmic, Ruten, Yahoo, MyAcg)}

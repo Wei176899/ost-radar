@@ -24,6 +24,7 @@ SOURCE_META = {
     "fivemusic": {"name": "五大唱片", "type": "唱片行", "home": "https://www.5music.com.tw/"},
     "rottenblues": {"name": "爛調唱片", "type": "唱片行", "home": "https://www.rottenblues.com/"},
     "tht": {"name": "THT 唱片", "type": "唱片行", "home": "https://www.thtrecords.com/"},
+    "cosmic": {"name": "宇宙唱片", "type": "唱片行", "home": "https://www.cosmicmusicrecord.com/"},
     "ruten": {"name": "露天拍賣", "type": "拍賣", "home": "https://www.ruten.com.tw/"},
     "yahoo": {"name": "Yahoo 拍賣", "type": "拍賣", "home": "https://tw.bid.yahoo.com/"},
     "myacg": {"name": "買動漫", "type": "拍賣", "home": "https://www.myacg.com.tw/"},

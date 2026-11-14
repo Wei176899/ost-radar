@@ -90,10 +90,12 @@ def apply_checks(items: list[Item], state: dict, max_age: int) -> int:
         it.release = it.release or c.get("r", "")
         it.barcode = it.barcode or c.get("bc", "")
         it.deadline = it.deadline or c.get("dl", "")
-        if it.status == UNKNOWN:  # 列表頁本身有狀態（現貨／售完）時以列表為準
+        # 暫定狀態的通路：列表顯示可下單時，不套用舊的「缺貨」結果
+        tentative = SOURCES[it.source].tentative and c.get("st") != OUT
+        if it.status == UNKNOWN or tentative:  # 列表頁有明確狀態（現貨／售完）時以列表為準
             it.status = c.get("st", it.status)
             it.stock = c.get("q") if it.stock is None else it.stock
-            it.note = it.note or c.get("n", "")
+            it.note = c.get("n", "") if tentative else (it.note or c.get("n", ""))
             it.verified, it.checked = True, c["d"]
             n += 1
     return n
