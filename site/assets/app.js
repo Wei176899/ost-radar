@@ -17,11 +17,28 @@
   const SUB = { ost: "原聲帶", song: "歌曲・主題曲", arrange: "改編・演奏" };
   const ST_CLS = { 預購: "pre", 現貨: "stock", 可訂購: "ord", 缺貨: "out", 待確認: "unk" };
   const STATUSES = ["預購", "現貨", "可訂購", "待確認", "缺貨"];
+  // 狀態的白話說明：卡片提示、狀態說明、詳細頁共用
+  const STATUS_HELP = {
+    預購: "還沒發售，可以先下訂，發售後出貨。",
+    現貨: "店家有庫存，下單後就會寄出。",
+    可訂購: "可以下單，但店家要向海外或廠商調貨，需要等待到貨。",
+    待確認: "暫時無法確認庫存，請到通路頁面確認。",
+    缺貨: "目前售完或無法購買。",
+  };
   const TAGS = ["限定盤", "彩膠", "日版", "台灣版", "BOX", "附特典", "180g", "代購", "二手"];
   const MARKET = new Set(["ruten", "yahoo", "myacg"]); // 載入後依 meta 的通路類型更新
-  const TODAY = new Date().toISOString().slice(0, 10);
+  // 以使用者當地日期為準（toISOString 是 UTC，台灣清晨會變成前一天）
+  const TODAY = new Date(Date.now() - new Date().getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
 
   let ITEMS = [], NEWS = [], META = {}, SRC = {};
+  const BY_ID = new Map();
+
+  // 本機儲存（收藏、瀏覽紀錄、顯示方式）：私密模式或被封鎖時安靜失敗，網站照常可用
+  const store = {
+    get(k, d) { try { const v = JSON.parse(localStorage.getItem(k)); return v ?? d; } catch { return d; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* 無法儲存 */ } },
+  };
+  const HEART = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.3s-7.6-4.6-7.6-10.2A4.3 4.3 0 0 1 12 7.4a4.3 4.3 0 0 1 7.6 2.7c0 5.6-7.6 10.2-7.6 10.2z"/></svg>`;
   const GROUPS = new Map();          // 比價群組 g → 同一商品在各通路的報價
   const BUYABLE = new Set(["現貨", "預購", "可訂購", "待確認"]);
   const STALE_DAYS = 5;
@@ -40,7 +57,8 @@
     (META.sources || []).forEach((s) => { SRC[s.key] = s; if (s.type === "拍賣") MARKET.add(s.key); });
     const map = thumbs || {};
     ITEMS.forEach((it, i) => {
-      it._i = i; it._q = `${it.t} ${it.fr || ""} ${it.sl || ""} ${FMT[it.f] || ""}`.toLowerCase();
+      it._i = i; it._q = `${it.t} ${it.fr || ""} ${it.sl || ""} ${FMT[it.f] || ""} ${it.bc || ""}`.toLowerCase();
+      BY_ID.set(it.id, it);
       const m = map[it.id];
       if (m === 0) it.i = "";                              // 通路的「無圖片」佔位圖
       else if (m) { it.th = `img/${m[0]}.webp`; it.c = m[1]; } // 同網域 WebP 縮圖 + 主色
@@ -58,7 +76,10 @@
   // 販售狀況：剩餘庫存、已售出、預購截止
   function salesBits(it) {
     const out = [];
-    if (it.dl && it.dl >= TODAY) out.push(`預購至 ${shortDate(it.dl)}`);
+    if (it.dl && it.dl >= TODAY) {
+      const left = Math.round((Date.parse(it.dl) - Date.parse(TODAY)) / 864e5);
+      out.push(left <= 7 ? (left ? `剩 ${left} 天截止預購` : "今天截止預購") : `預購至 ${shortDate(it.dl)}`);
+    }
     if (it.q != null && it.st !== "缺貨" && it.q > 0) out.push(it.q <= 10 ? `剩 ${it.q} 件` : `庫存 ${it.q}`);
     if (it.so) out.push(`已售 ${fmtN(it.so)}`);
     return out;
@@ -93,29 +114,118 @@
   function card(it, { tag = "button" } = {}) {
     const st = ST_CLS[it.st] || "unk";
     const flags = (it.fl || []).slice(0, 1).map((f) => `<span class="pill flag">${esc(f.replace(/ .*/, ""))}</span>`).join("");
+    // 卡片只留最關鍵的一行補充：發售日／剩餘數量／資料過舊，其餘資訊放在詳細頁
     const sub = [];
-    if (it.r && it.st === "預購") sub.push(`<span>${esc(relLabel(it))}</span>`);
+    if (it.r && it.st === "預購") sub.push(`<span class="rel">${esc(relLabel(it))}</span>`);
     const sales = salesBits(it);
-    sales.forEach((b) => sub.push(`<span class="${/剩/.test(b) ? "warn" : "v"}">${esc(b)}</span>`));
+    if (sales.length) sub.push(`<span class="${/剩/.test(sales[0]) ? "warn" : "v"}">${esc(sales[0])}</span>`);
     const age = ageDays(it);
     if (age >= 2) sub.push(`<span class="${age >= STALE_DAYS ? "warn" : ""}">${age} 天前資料</span>`);
-    else if (!sales.length && it.v) sub.push(`<span class="v">✓ 已複查</span>`);
-    if (it.fr && sub.length < 3) sub.push(`<span>${esc(it.fr)}</span>`);
     const oi = offerInfo(it);
     const cmp = oi.stores > 1
-      ? `<div class="card-cmp"><span>${oi.stores} 家比價</span>${oi.low ? `<b>最低 $${fmtN(oi.low)}</b>` : ""}</div>` : "";
+      ? `<div class="card-cmp"><span>${oi.stores} 家有賣</span>${oi.low ? `<b>最低 $${fmtN(oi.low)}</b>` : ""}</div>` : "";
     const bestPill = it.best && oi.stores > 1 ? `<span class="pill best">最低價</span>` : "";
-    return `<${tag} class="card${it.st === "缺貨" ? " is-out" : ""}" data-f="${esc(it.f)}" data-i="${it._i}" type="button" aria-label="${esc(it.t)}，${esc(it.st)}，${esc(srcName(it.s))}">
+    return `<div class="cell"><${tag} class="card${it.st === "缺貨" ? " is-out" : ""}" data-f="${esc(it.f)}" data-i="${it._i}" type="button" aria-label="${esc(it.t)}，${esc(it.st)}，${esc(srcName(it.s))}${it.p ? "，" + fmtN(it.p) + " 元" : ""}">
       <div class="sleeve"><span class="disc" aria-hidden="true"></span>
         ${cover(it)}
-        <div class="pill-row"><span class="pill ${st}">${esc(stLabel(it))}</span>${bestPill}${flags}</div>
-        <span class="fmt-tag">${esc(FMT[it.f] || it.f)}${it.d ? " ×" + esc(it.d) : ""}</span>
+        <div class="pill-row"><span class="pill ${st}" title="${esc(STATUS_HELP[it.st] || "")}">${esc(stLabel(it))}</span>${bestPill || flags}</div>
+        <span class="fmt-tag">${esc(FMT[it.f] || it.f)}${Number(it.d) > 1 ? " ×" + esc(it.d) : ""}</span>
       </div>
       <div class="card-t">${esc(it.t)}</div>
       <div class="card-meta">${priceHtml(it.p)}<span class="src">${esc(srcName(it.s))}</span></div>
       ${sub.length ? `<div class="card-sub">${sub.join("")}</div>` : ""}
       ${cmp}
-    </${tag}>`;
+    </${tag}>${favBtn(it)}</div>`;
+  }
+  // 收藏按鈕放在卡片旁（不放進卡片按鈕裡，避免巢狀互動元素）
+  function favBtn(it, cls = "fav") {
+    const on = isFav(it.id);
+    return `<button type="button" class="${cls}" data-fav="${esc(it.id)}" aria-pressed="${on}" aria-label="${on ? "取消收藏" : "加入收藏"}：${esc(it.t)}" title="${on ? "取消收藏" : "加入收藏"}">${HEART}${cls === "fav" ? "" : `<span>${on ? "已收藏" : "收藏"}</span>`}</button>`;
+  }
+
+  /* ------------------------------------------------------------ 收藏與瀏覽紀錄（存在本機） */
+  // 收藏時記下當時的狀態與價格，之後比對就能提醒「補貨」「降價」「售完」
+  let FAV = store.get("ost-fav", {});
+  if (!FAV || typeof FAV !== "object" || Array.isArray(FAV)) FAV = {};
+  const isFav = (id) => Object.hasOwn(FAV, id);
+  const snap = (it) => ({ t: it.t, p: it.p ?? null, st: it.st, s: it.s, u: it.u, img: it.th || it.i || "", at: TODAY, vs: it.st, vp: it.p ?? null });
+  function toggleFav(id) {
+    const it = BY_ID.get(id);
+    if (isFav(id)) delete FAV[id];
+    else if (it) FAV[id] = snap(it);
+    else return;
+    store.set("ost-fav", FAV);
+    $$(`[data-fav="${CSS.escape(id)}"]`).forEach((b) => {
+      const on = isFav(id);
+      b.setAttribute("aria-pressed", on);
+      b.title = on ? "取消收藏" : "加入收藏";
+      b.setAttribute("aria-label", `${on ? "取消收藏" : "加入收藏"}：${it?.t || ""}`);
+      const label = b.querySelector("span"); if (label) label.textContent = on ? "已收藏" : "收藏";
+    });
+    updateFavBadge();
+    toast(isFav(id) ? "已加入收藏，補貨或降價時會在 ♡ 提醒" : "已取消收藏");
+  }
+  const LIVE = new Set(["現貨", "預購", "可訂購"]);
+  // 與某個時間點的狀態比較，回傳值得提醒的變化
+  function favChange(st0, p0, it) {
+    if (!it) return { txt: "已不在資料中（可能下架）", cls: "mute" };
+    if (st0 === "預購" && it.st === "現貨") return { txt: "已到貨，有現貨", cls: "ok" };
+    if (!LIVE.has(st0) && LIVE.has(it.st)) return { txt: `補貨了，現在${it.st}`, cls: "ok" };
+    if (LIVE.has(st0) && it.st === "缺貨") return { txt: "已售完", cls: "mute" };
+    if (p0 && it.p && it.p < p0) return { txt: `降價 $${fmtN(p0)} → $${fmtN(it.p)}`, cls: "ok" };
+    if (p0 && it.p && it.p > p0) return { txt: `漲價 $${fmtN(p0)} → $${fmtN(it.p)}`, cls: "warn" };
+    return null;
+  }
+  function updateFavBadge() {
+    const ids = Object.keys(FAV), b = $("#favCount");
+    const news = ids.some((id) => { const f = FAV[id], it = BY_ID.get(id); return it ? favChange(f.vs, f.vp, it) : !f.ack; });
+    b.hidden = !ids.length; b.textContent = ids.length;
+    b.classList.toggle("news", news);
+    $("#favBtn").setAttribute("aria-label", `我的收藏與瀏覽紀錄${ids.length ? `（${ids.length} 筆${news ? "，有新變化" : ""}）` : ""}`);
+  }
+  let RECENT = store.get("ost-recent", []);
+  if (!Array.isArray(RECENT)) RECENT = [];
+  function pushRecent(id) {
+    RECENT = [id, ...RECENT.filter((x) => x !== id)].slice(0, 24);
+    store.set("ost-recent", RECENT);
+  }
+  function miniRow(it, extra = "") {
+    return `<a class="alt-row" href="#" data-i="${it._i}" data-back="col">${it.i ? img(it.th || it.i, "", "ok", { fallback: it.th ? it.i : "" }) : `<span class="ph"></span>`}
+      <span><span class="at">${esc(it.t)}</span><span class="as">${esc(srcName(it.s))}</span>${extra}</span>
+      <span class="ap">${it.p ? "$" + fmtN(it.p) : "—"}<span class="${ST_CLS[it.st] || ""}">${esc(it.st)}</span></span></a>`;
+  }
+  function openCollection({ push = true } = {}) {
+    if ($("#sheet").hidden) lastFocus = document.activeElement;
+    const favs = Object.entries(FAV).sort((a, b) => (b[1].at || "").localeCompare(a[1].at || ""));
+    const favHtml = favs.map(([id, f]) => {
+      const it = BY_ID.get(id);
+      const c = favChange(f.st, f.p, it);
+      const chg = c ? `<span class="chg ${c.cls}">${esc(c.txt)}</span>` : "";
+      const since = `<span class="as">收藏於 ${esc(shortDate(f.at))}</span>`;
+      const row = it ? miniRow(it, chg || since)
+        : `<a class="alt-row" href="${esc(safeUrl(f.u))}" ${ext}><span class="ph"></span><span><span class="at">${esc(f.t)}</span><span class="as">${esc(srcName(f.s))}</span>${chg}</span><span class="ap">↗</span></a>`;
+      return `<li class="col-row">${row}<button type="button" class="col-rm" data-fav="${esc(id)}" aria-pressed="true" aria-label="取消收藏：${esc(f.t)}" title="取消收藏">✕</button></li>`;
+    }).join("");
+    const recent = RECENT.map((id) => BY_ID.get(id)).filter(Boolean).slice(0, 12);
+    $("#sheetBody").innerHTML = `
+      <div class="col-head"><p class="sb-k">本機收藏</p><h2 class="sb-t" id="sheetTitle">我的收藏${favs.length ? `<small>${favs.length} 筆</small>` : ""}</h2>
+        <p class="col-note">收藏與瀏覽紀錄只存在這台裝置的瀏覽器，不需要登入。收藏後補貨、降價或售完，會在這裡標示。</p></div>
+      ${favs.length ? `<ol class="col-list">${favHtml}</ol>`
+        : `<div class="bubble left"><b>還沒有收藏</b>看到喜歡的商品，點封面右上角的 ♡ 就能收藏。</div>`}
+      <div class="sb-alt"><h4>最近看過${recent.length ? `<button type="button" class="link-btn" data-clear-recent>清除紀錄</button>` : ""}</h4>
+        ${recent.length ? recent.map((it) => miniRow(it)).join("") : `<p>還沒有瀏覽紀錄。</p>`}</div>`;
+    // 已看過目前的變化：清掉導覽列的提醒點（列表上的變化標示仍以收藏當時為準）
+    favs.forEach(([id, f]) => { const it = BY_ID.get(id); if (it) { f.vs = it.st; f.vp = it.p ?? null; } else f.ack = 1; });
+    store.set("ost-fav", FAV); updateFavBadge();
+    showSheet({ push, url: (u) => { u.searchParams.delete("item"); u.searchParams.set("view", "fav"); } });
+  }
+  function showSheet({ push, url }) {
+    const u = new URL(location.href); url(u); u.hash = "";
+    if ($("#sheet").hidden && push) history.pushState({ sheet: 1 }, "", u);   // 返回鍵可關閉
+    else history.replaceState(history.state, "", u);
+    $("#sheet").hidden = false; document.body.classList.add("lock");
+    $(".sheet-card").scrollTop = 0;
+    $(".sheet-close").focus({ preventScroll: true });
   }
 
   /* ------------------------------------------------------------ hero */
@@ -132,31 +242,39 @@
   function renderHero() {
     const jp = ITEMS.filter((i) => i.jp);
     const pre = jp.filter((i) => i.st === "預購");
+    const month = TODAY.slice(0, 7);
     const n = {
       pre: pre.length,
       stock: jp.filter((i) => i.st === "現貨").length,
-      new: ITEMS.filter((i) => (i.fl || []).includes("NEW")).length,
-      verified: ITEMS.filter((i) => i.v).length,
+      month: pre.filter((i) => !MARKET.has(i.s) && (i.r || "").startsWith(month)).length,
+      new: ITEMS.filter((i) => i.jp && i.st !== "缺貨" && (i.fl || []).includes("NEW")).length,
     };
-    if (!n.new) { // 第一次巡檢還沒有「新上架」基準，改顯示追蹤作品數
-      const dd = $('#stats dd[data-k="new"]');
-      dd.previousElementSibling.textContent = "作品";
-      n.new = (META.franchises || []).length;
-    }
-    $$("#stats dd").forEach((dd) => countUp(dd, n[dd.dataset.k]));
+    $$("#stats b[data-k]").forEach((b) => countUp(b, n[b.dataset.k]));
+    if (!n.new) $('#stats [data-go="new"]').hidden = true;     // 第一次巡檢還沒有「新上架」基準
     countUp($("#heroCount"), n.pre);
+    const shops = (META.sources || []).length;
+    if (shops) $("#heroEyebrow").textContent = `${shops} 家唱片行・電商・拍賣，每日更新`;
+    // 快速查看：常見需求 + 商品最多的作品，讓第一次來的人有地方可以點
+    const freq = {};
+    ITEMS.forEach((i) => { if (i.fr && i.jp && i.st !== "缺貨" && !MARKET.has(i.s)) freq[i.fr] = (freq[i.fr] || 0) + 1; });
+    const topFr = Object.entries(freq).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([k]) => k);
+    $("#quick").innerHTML = `<span class="quick-k">快速查看</span>` +
+      (n.month ? `<button type="button" class="hot" data-go="month">本月發售</button>` : "") +
+      `<button type="button" data-go="vinyl-stock">有現貨的黑膠</button>` +
+      topFr.map((f) => `<button type="button" data-go="fr:${esc(f)}">${esc(f)}</button>`).join("");
     // 首頁封面：最近即將發售的預購（資料檔依 id 排序，這裡自行挑選）
     const pics = pre.filter((i) => i.i && !MARKET.has(i.s) && i.r && i.r >= TODAY)
       .sort((a, b) => a.r.localeCompare(b.r)).slice(0, 3);
     const fill = pics.length < 3 ? jp.filter((i) => i.i && !MARKET.has(i.s) && i.st === "現貨").slice(0, 3 - pics.length) : [];
     $("#heroSleeves").innerHTML = [...pics, ...fill].map((i) =>
       img(i.th || i.i, "", "ok", { eager: true, fallback: i.th ? i.i : "" }).replace("<img ", "<img data-ph ")).join("");
-    if (META.generated) $("#updated").textContent = `更新 ${META.generated.slice(5).replace("-", "/")}`;
+    if (META.generated) $("#updated").textContent = `資料更新 ${META.generated.slice(5).replace("-", "/")}`;
     $("#footMeta").textContent = META.generated ? `更新於 ${META.generated.replace(/-/g, ".")} · ${fmtN(META.total)} 筆 · ${fmtN(META.news)} 則新聞` : "";
   }
 
   /* ------------------------------------------------------------ ticker */
   function renderTicker() {
+    if (!$(".ticker")) return;   // 跑馬燈已移除（持續移動的文字不易閱讀）
     const list = NEWS.filter((n) => n.jp).slice(0, 18);
     if (!list.length) { $(".ticker").hidden = true; return; }
     const html = list.map((n) => `<a href="${esc(safeUrl(n.url))}" ${ext}><time>${esc(n.date.slice(5).replace("-", "."))}</time>${esc(n.title)}</a>`).join("");
@@ -187,17 +305,18 @@
     const market = ITEMS.filter((i) => i.st === "預購" && i.jp && MARKET.has(i.s));
     const defs = [...groups.entries()].slice(0, 10).map(([k, v]) => {
       const [y, m] = k.split("-");
-      return { k, label: `<b>${+m}</b>月<small>${esc(y)}・${v.length}</small>`, list: v };
+      const yr = y !== TODAY.slice(0, 4) ? `${esc(y)} ` : "";
+      return { k, label: `<b>${yr}${+m} 月</b><small>${v.length} 筆</small>`, list: v };
     });
-    if (undated.length) defs.push({ k: "tba", label: `日期未定<small>${undated.length}</small>`, list: undated });
-    if (market.length) defs.push({ k: "market", label: `拍賣代購<small>${market.length}</small>`, list: market.slice(0, 60) });
+    if (undated.length) defs.push({ k: "tba", label: `日期未定<small>${undated.length} 筆</small>`, list: undated });
+    if (market.length) defs.push({ k: "market", label: `拍賣代購<small>${market.length} 筆</small>`, list: market.slice(0, 60) });
     const map = Object.fromEntries(defs.map((d) => [d.k, d.list]));
     tabs($("#months"), defs, (k) => rail($("#upcomingRail"), map[k] || [], "目前沒有預購"));
     if (!defs.length) rail($("#upcomingRail"), [], "目前沒有預購");
   }
 
   function renderPulse() {
-    const fl = ITEMS.filter((i) => (i.fl || []).length && i.jp);
+    const fl = ITEMS.filter((i) => (i.fl || []).length && i.jp && i.st !== "缺貨");  // 已售完的新品不放在動態裡
     if (!fl.length) { $("#pulse").hidden = true; $('.nav-links a[href="#pulse"]').hidden = true; return; }
     const by = (p) => fl.filter((i) => i.fl.some((f) => f.startsWith(p)));
     const defs = [
@@ -256,6 +375,7 @@
   }
 
   /* ------------------------------------------------------------ catalog */
+  let VIEW = "grid";
   const F = { page: 1, merge: true, q: "", ch: "shop", fmt: "", st: new Set(), kind: new Set(), src: new Set(), tag: new Set(), fr: "", sort: "smart", onlyJp: true, hideOut: true, onlyVer: false };
   let filtered = [];
 
@@ -321,7 +441,7 @@
   }
   function renderControls() {
     const cc = counts("ch", (i) => (MARKET.has(i.s) ? "market" : "shop"));
-    $("#chSeg").innerHTML = [["shop", "商店"], ["market", "拍賣"], ["", "全部"]].map(([v, l]) =>
+    $("#chSeg").innerHTML = [["shop", "店家"], ["market", "拍賣"], ["", "全部"]].map(([v, l]) =>
       `<button type="button" data-v="${v}" aria-pressed="${F.ch === v}">${l}<small>${fmtN(v ? cc[v] || 0 : (cc.shop || 0) + (cc.market || 0))}</small></button>`).join("");
     $("#chSeg").classList.toggle("muted", F.src.size > 0);
     const cf = counts("fmt", (i) => i.f), tot = Object.values(cf).reduce((a, b) => a + b, 0);
@@ -335,8 +455,49 @@
     chipSet($("#srcChips"), "src", (META.sources || []).map((s) => ({ v: s.key, label: s.name, n: cs2[s.key] || 0 })));
     const ct = {}; ITEMS.forEach((it) => match(it, "tag") && (it.tg || []).forEach((t) => (ct[t] = (ct[t] || 0) + 1)));
     chipSet($("#tagChips"), "tag", TAGS.filter((t) => ct[t]).map((t) => ({ v: t, label: t, n: ct[t] })));
-    const active = F.st.size + F.kind.size + F.src.size + F.tag.size + (F.fr ? 1 : 0) + (F.onlyVer ? 1 : 0) + (F.onlyJp ? 0 : 1) + (F.hideOut ? 0 : 1);
+    const active = F.st.size + F.kind.size + F.src.size + F.tag.size + (F.fr ? 1 : 0) + (F.onlyVer ? 1 : 0) + (F.onlyJp ? 0 : 1) + (F.hideOut ? 0 : 1) + (F.merge ? 0 : 1) + (F.sort !== "smart" ? 1 : 0);
     $("#filterBadge").hidden = !active; $("#filterBadge").textContent = active;
+    renderActive();
+  }
+  // 目前套用的條件，以可移除的標籤列出（不必打開篩選面板也知道結果為什麼變少）
+  function renderActive() {
+    const out = [];
+    const add = (rm, label) => out.push(`<button type="button" class="achip" data-rm="${esc(rm)}" aria-label="移除條件：${esc(label)}">${esc(label)}<i aria-hidden="true">✕</i></button>`);
+    if (F.q) add("q", `搜尋「${F.q}」`);
+    if (F.fmt) add("fmt", FMT_LONG[F.fmt] || F.fmt);
+    if (F.fr) add("fr", F.fr);
+    F.st.forEach((v) => add(`st:${v}`, v));
+    F.kind.forEach((v) => add(`kind:${v}`, KIND[v] || v));
+    F.src.forEach((v) => add(`src:${v}`, srcName(v)));
+    F.tag.forEach((v) => add(`tag:${v}`, v));
+    if (!F.hideOut) add("hideOut", "包含缺貨");
+    if (!F.onlyJp) add("onlyJp", "包含非日本作品");
+    if (F.onlyVer) add("onlyVer", "只看已確認庫存");
+    if (!F.merge) add("merge", "不合併同款");
+    if (F.sort !== "smart") add("sort", `排序：${$(`#sortSel option[value="${F.sort}"]`)?.textContent || ""}`);
+    if (out.length > 1) out.push(`<button type="button" class="achip clear" data-rm="all">全部清除</button>`);
+    $("#activeChips").innerHTML = out.join("");
+  }
+  function removeFilter(rm) {
+    const [k, v] = rm.split(/:(.*)/);
+    if (k === "all") return resetFilters();
+    if (k === "q") { F.q = ""; $("#q").value = ""; $("#heroQ").value = ""; }
+    else if (k === "fmt") F.fmt = "";
+    else if (k === "fr") { F.fr = ""; $("#frSel").value = ""; }
+    else if (["st", "kind", "src", "tag"].includes(k)) F[k].delete(v);
+    else if (k === "hideOut") { F.hideOut = true; $("#hideOut").checked = true; }
+    else if (k === "onlyJp") { F.onlyJp = true; $("#onlyJp").checked = true; }
+    else if (k === "onlyVer") { F.onlyVer = false; $("#onlyVerified").checked = false; }
+    else if (k === "merge") { F.merge = true; $("#mergeSame").checked = true; }
+    else if (k === "sort") { F.sort = "smart"; $("#sortSel").value = "smart"; }
+    applyFilters();
+  }
+  function resetFilters() {
+    Object.assign(F, { merge: true, q: "", ch: "shop", fmt: "", fr: "", sort: "smart", onlyJp: true, hideOut: true, onlyVer: false });
+    ["st", "kind", "src", "tag"].forEach((k) => F[k].clear());
+    $("#q").value = ""; $("#heroQ").value = ""; $("#frSel").value = ""; $("#sortSel").value = "smart";
+    $("#onlyJp").checked = true; $("#hideOut").checked = true; $("#onlyVerified").checked = false; $("#mergeSame").checked = true;
+    applyFilters();
   }
 
   // 篩選後讓結果從搜尋列正下方開始，避免內容變短時頁面跳動、搜尋列被捲走
@@ -379,11 +540,22 @@
     if (!keepPage) F.page = 1;
     showPage(F.page, { scroll: false });
     const pre = filtered.filter((i) => i.st === "預購").length, stock = filtered.filter((i) => i.st === "現貨").length;
-    $("#resultLine").innerHTML = `<b>${fmtN(filtered.length)}</b> 筆 · 預購 ${fmtN(pre)} · 現貨 ${fmtN(stock)}`;
+    $("#resultLine").innerHTML = `找到 <b>${fmtN(filtered.length)}</b> 筆・預購 ${fmtN(pre)}・現貨 ${fmtN(stock)}`;
     $("#applyCount").textContent = fmtN(filtered.length);
     renderControls();
     writeURL();
     if (anchor) keepAnchor();
+  }
+  // 沒有結果時，告訴使用者可以怎麼放寬條件
+  function emptyState() {
+    const acts = [];
+    if (F.q) acts.push(["q", "清除搜尋字"]);
+    if (F.hideOut) acts.push(["showOut", "也顯示缺貨"]);
+    if (F.ch === "shop" && !F.src.size) acts.push(["market", "也找拍賣"]);
+    if (F.onlyJp) acts.push(["onlyJp", "包含非日本作品"]);
+    acts.push(["all", "清除全部條件"]);
+    return `<div class="empty"><div class="bubble"><b>找不到符合的商品…</b>${F.q ? `「${esc(F.q)}」可能換個寫法，例如日文或英文名稱。` : "目前的條件太嚴格了，試著放寬看看。"}</div>
+      <div class="empty-acts">${acts.map(([k, l], i) => `<button type="button" class="btn${i === 0 ? " primary" : " ghost"}" data-empty="${k}">${l}</button>`).join("")}</div></div>`;
   }
   // 分頁顯示：手機每頁 20 筆、電腦 36 筆
   const pageSize = () => (isMobile() ? 20 : 36);
@@ -393,7 +565,7 @@
     const start = (F.page - 1) * size;
     $("#grid").innerHTML = filtered.length
       ? filtered.slice(start, start + size).map((i) => card(i)).join("")
-      : `<div class="empty"><b>沒有符合的商品</b></div>`;
+      : emptyState();
     pager($("#pager"), F.page, pages, (p) => showPage(p));
     $("#pageInfo").textContent = pages > 1 ? `第 ${F.page} / ${pages} 頁` : "";
     if (scroll) {
@@ -410,6 +582,18 @@
     $("#onlyJp").checked = F.onlyJp; $("#hideOut").checked = F.hideOut; $("#onlyVerified").checked = F.onlyVer;
     const frs = (META.franchises || []).slice().sort((a, b) => a.localeCompare(b, "zh-Hant"));
     $("#frSel").insertAdjacentHTML("beforeend", frs.map((f) => `<option>${esc(f)}</option>`).join(""));
+    $("#frList").innerHTML = frs.map((f) => `<option value="${esc(f)}"></option>`).join("");   // 搜尋框自動完成作品名稱
+    // 顯示方式：卡片（看封面）／清單（一次看更多筆），記在本機
+    const setView = (v) => {
+      VIEW = v === "list" ? "list" : "grid";
+      $("#grid").classList.toggle("as-list", VIEW === "list");
+      $$("#viewSeg button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.v === VIEW));
+    };
+    setView(store.get("ost-view", "grid"));
+    $("#viewSeg").addEventListener("click", (e) => {
+      const b = e.target.closest("button"); if (!b) return;
+      setView(b.dataset.v); store.set("ost-view", VIEW);
+    });
     $("#frSel").value = F.fr;
 
     let t;
@@ -428,13 +612,39 @@
     $("#onlyVerified").addEventListener("change", (e) => { F.onlyVer = e.target.checked; applyFilters(); });
     $("#mergeSame").checked = F.merge;
     $("#mergeSame").addEventListener("change", (e) => { F.merge = e.target.checked; applyFilters(); });
-    $("#resetBtn").addEventListener("click", () => {
-      Object.assign(F, { merge: true, q: "", ch: "shop", fmt: "", fr: "", sort: "smart", onlyJp: true, hideOut: true, onlyVer: false });
-      ["st", "kind", "src", "tag"].forEach((k) => F[k].clear());
-      $("#q").value = ""; $("#frSel").value = ""; $("#sortSel").value = "smart";
-      $("#onlyJp").checked = true; $("#hideOut").checked = true; $("#onlyVerified").checked = false; $("#mergeSame").checked = true;
-      applyFilters();
+    $("#resetBtn").addEventListener("click", resetFilters);
+    $("#activeChips").addEventListener("click", (e) => { const b = e.target.closest("[data-rm]"); if (b) removeFilter(b.dataset.rm); });
+    $("#grid").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-empty]"); if (!b) return;
+      const k = b.dataset.empty;
+      if (k === "q") removeFilter("q");
+      else if (k === "showOut") { F.hideOut = false; $("#hideOut").checked = false; applyFilters(); }
+      else if (k === "market") { F.ch = ""; applyFilters(); }
+      else if (k === "onlyJp") { F.onlyJp = false; $("#onlyJp").checked = false; applyFilters(); }
+      else resetFilters();
     });
+    $("#legend").innerHTML = STATUSES.map((s) =>
+      `<div><dt><span class="pill ${ST_CLS[s]}">${s}</span></dt><dd>${esc(STATUS_HELP[s])}</dd></div>`).join("");
+    // 首頁的數字與快速查看：直接帶到對應的商品
+    const go = (k) => {
+      const toCatalog = () => { applyFilters({ anchor: false }); $("#catalog").scrollIntoView({ behavior: reduce ? "auto" : "smooth" }); };
+      const fresh = () => {
+        Object.assign(F, { q: "", ch: "shop", fmt: "", fr: "", onlyJp: true, hideOut: true, onlyVer: false });
+        ["st", "kind", "src", "tag"].forEach((x) => F[x].clear());
+        $("#q").value = ""; $("#frSel").value = ""; $("#onlyJp").checked = true; $("#hideOut").checked = true; $("#onlyVerified").checked = false;
+      };
+      if (k === "month") {
+        $("#upcoming").scrollIntoView({ behavior: reduce ? "auto" : "smooth" });
+        $(`#months .tab[data-k="${TODAY.slice(0, 7)}"]`)?.click();
+      } else if (k === "new") {
+        $("#pulse").scrollIntoView({ behavior: reduce ? "auto" : "smooth" });
+        $('#pulseTabs .tab[data-k="NEW"]')?.click();
+      } else if (k === "vinyl-stock") { fresh(); F.fmt = "vinyl"; F.st.add("現貨"); toCatalog(); }
+      else if (k.startsWith("st:")) { fresh(); F.st.add(k.slice(3)); toCatalog(); }
+      else if (k.startsWith("fr:")) { fresh(); F.fr = k.slice(3); $("#frSel").value = F.fr; toCatalog(); }
+    };
+    $("#stats").addEventListener("click", (e) => { const b = e.target.closest("[data-go]"); if (b) go(b.dataset.go); });
+    $("#quick").addEventListener("click", (e) => { const b = e.target.closest("[data-go]"); if (b) go(b.dataset.go); });
     const panel = $("#filterPanel"), openBtn = $("#filterOpen");
     const setPanel = (open, { fromPop = false } = {}) => {
       const mobile = isMobile();
@@ -500,8 +710,9 @@
     .replace(/黑膠|彩膠|唱片|LP|CD|限定|初回|生產|生産|盤|預購|代購|代訂|現貨|全新|日版|進口|\d+\s*(?:吋|寸)/gi, " ")
     .replace(/\s+/g, " ").trim().slice(0, 80);
   let lastFocus = null;
-  function openSheet(it, { push = true } = {}) {
-    lastFocus = document.activeElement;
+  function openSheet(it, { push = true, back = false } = {}) {
+    if ($("#sheet").hidden) lastFocus = document.activeElement;
+    pushRecent(it.id);
     const st = ST_CLS[it.st] || "unk";
     const ckDate = shortDate(it.ck || (META.generated || "").slice(0, 10));
     const age = ageDays(it);
@@ -515,12 +726,14 @@
       ["類型", `${KIND[it.k] || ""}・${SUB[it.sb] || ""}`],
       it.fr && ["作品", `<a href="?fr=${encodeURIComponent(it.fr)}#catalog" data-fr="${esc(it.fr)}">${esc(it.fr)} →</a>`],
       it.r && ["發售日", esc(relLong(it.r))],
-      it.dl && ["預購截止", esc(relLong(it.dl)) + (it.dl < TODAY ? "（已截止）" : "")],
+      it.dl && ["預購截止", esc(relLong(it.dl)) + (it.dl < TODAY ? "（已截止）"
+        : `（還有 ${Math.round((Date.parse(it.dl) - Date.parse(TODAY)) / 864e5)} 天）`)],
       it.q != null && it.st !== "缺貨" && ["剩餘庫存", it.q > 0 ? `${fmtN(it.q)} 件` : "需調貨"],
       it.so && ["已售出", `${fmtN(it.so)} 件`],
       it.n && !(it.r && /^預計/.test(it.n)) && ["備註", esc(it.n)],
       it.sl && ["品牌／賣家", esc(it.sl)],
       ["通路", `${esc(srcName(it.s))}${MARKET.has(it.s) ? "（拍賣）" : ""}`],
+      it.bc && ["條碼", `<span class="num">${esc(it.bc)}</span> <button type="button" class="link-btn" data-copy="${esc(it.bc)}">複製</button>`],
       ["首次發現", esc((it.fs || "").replace(/-/g, "."))],
       (it.tg || []).length && ["版本", `<div class="sb-tags">${it.tg.map((t) => `<span>${esc(t)}</span>`).join("")}</div>`],
       (it.fl || []).length && ["動態", `<div class="sb-tags">${it.fl.map((t) => `<span>${esc(t)}</span>`).join("")}</div>`],
@@ -542,32 +755,42 @@
       }).join("")}</ol></div>` : "";
     const sameGroup = new Set(oi.all);
     const alts = similar(it).filter((o) => !sameGroup.has(o));
+    // 同作品的其他商品（參考唱片行的「所有作品」「相關商品」）：每組只取一筆，有貨優先
+    const altSet = new Set(alts);
+    let siblings = [], sibTotal = 0;
+    if (it.fr) {
+      const rank = { 現貨: 0, 預購: 1, 可訂購: 2, 待確認: 3, 缺貨: 4 }, seen = new Set([it.g || it.id]);
+      const pool = ITEMS.filter((o) => o.fr === it.fr && !MARKET.has(o.s) && !sameGroup.has(o) && !altSet.has(o))
+        .sort((a, b) => rank[a.st] - rank[b.st] || (b.r || "").localeCompare(a.r || ""));
+      pool.forEach((o) => { const k = o.g || o.id; if (!seen.has(k)) { seen.add(k); siblings.push(o); } });
+      sibTotal = siblings.length; siblings = siblings.slice(0, 6);
+    }
     $("#sheetBody").innerHTML = `
+      ${back ? `<button type="button" class="link-btn sb-back" data-open-col>← 回到我的收藏</button>` : ""}
       <div class="sb-hero card" data-f="${esc(it.f)}"><span class="disc" aria-hidden="true"></span>
         ${cover(it, { eager: true, hi: true, phLen: 40 })}</div>
       <p class="sb-k">${esc(srcName(it.s))} · ${esc(FMT_LONG[it.f] || "")}</p>
       <h2 class="sb-t" id="sheetTitle">${esc(it.t)}</h2>
       <p class="sb-price">${it.p ? `<small>NT$</small>${fmtN(it.p)}` : "—"}</p>
-      <div class="sb-status"><span class="pill ${st}">${esc(stLabel(it))}</span>${ver}</div>
+      <div class="sb-status"><div class="sb-status-top"><span class="pill ${st}">${esc(stLabel(it))}</span>${ver}</div>
+        ${STATUS_HELP[it.st] ? `<p class="sb-help">${esc(STATUS_HELP[it.st])}</p>` : ""}</div>
       <dl class="sb-dl">${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}</dl>
       <div class="sb-actions">
         <a class="btn primary sb-buy" href="${esc(safeUrl(it.u))}" ${ext}>前往 ${esc(srcName(it.s))} <span aria-hidden="true">↗</span></a>
-        <button class="btn ghost sb-share" type="button" data-share>分享</button>
+        ${favBtn(it, "btn ghost sb-fav")}
+        <button class="btn ghost sb-share" type="button" data-share aria-label="分享">分享</button>
       </div>
       ${(META.links || []).filter((l) => l.search).map((l) => `<a class="sb-ref" href="${esc(safeUrl(l.search.replace("{q}", encodeURIComponent(refQuery(it)))))}" ${ext}>在 ${esc(l.name)} 查詢版本資料 <span aria-hidden="true">↗</span></a>`).join("")}
       ${cmpHtml}
       ${alts.length ? `<div class="sb-alt"><h4>相似商品</h4>
         ${alts.map((o) => `<a class="alt-row" href="#" data-i="${o._i}">${o.i ? img(o.th || o.i, "", "ok", { fallback: o.th ? o.i : "" }) : `<span class="ph"></span>`}
           <span><span class="at">${esc(o.t)}</span><span class="as">${esc(srcName(o.s))}</span></span>
-          <span class="ap">${o.p ? "$" + fmtN(o.p) : "—"}<span>${esc(o.st)}</span></span></a>`).join("")}</div>` : ""}`;
-    const u = new URL(location.href); u.searchParams.set("item", it.id); u.hash = "";
-    if ($("#sheet").hidden && push) history.pushState({ sheet: 1 }, "", u);   // 返回鍵可關閉
-    else history.replaceState(history.state, "", u);
+          <span class="ap">${o.p ? "$" + fmtN(o.p) : "—"}<span>${esc(o.st)}</span></span></a>`).join("")}</div>` : ""}
+      ${siblings.length ? `<div class="sb-alt"><h4>同作品的其他商品<small>${sibTotal} 款</small></h4>
+        ${siblings.map((o) => miniRow(o).replace(' data-back="col"', "")).join("")}
+        ${sibTotal > siblings.length ? `<a class="sb-more" href="?fr=${encodeURIComponent(it.fr)}#catalog" data-fr="${esc(it.fr)}">看「${esc(it.fr)}」全部 ${sibTotal + 1} 款 →</a>` : ""}</div>` : ""}`;
     current = it;
-    const sheet = $("#sheet");
-    sheet.hidden = false; document.body.classList.add("lock");
-    $(".sheet-card").scrollTop = 0;
-    $(".sheet-close").focus({ preventScroll: true });
+    showSheet({ push, url: (u) => { u.searchParams.delete("view"); u.searchParams.set("item", it.id); } });
   }
   let current = null;
   function toast(msg) {
@@ -585,7 +808,7 @@
   function closeSheet({ fromPop = false } = {}) {
     if ($("#sheet").hidden) return;
     if (!fromPop && history.state?.sheet) { history.back(); return; }  // 交給 popstate 收尾
-    const u = new URL(location.href); u.searchParams.delete("item"); history.replaceState(null, "", u);
+    const u = new URL(location.href); u.searchParams.delete("item"); u.searchParams.delete("view"); history.replaceState(null, "", u);
     $(".sheet-card").style.transform = "";
     current = null;
     $("#sheet").hidden = true; document.body.classList.remove("lock");
@@ -610,8 +833,21 @@
       y0 = null;
     });
     document.addEventListener("click", (e) => {
+      const fav = e.target.closest("[data-fav]");
+      if (fav) {
+        toggleFav(fav.dataset.fav);
+        if (fav.classList.contains("col-rm")) openCollection({ push: false });   // 在收藏清單裡移除：重新整理清單
+        return;
+      }
+      if (e.target.closest("[data-open-col]")) { openCollection({ push: false }); return; }
+      if (e.target.closest("[data-clear-recent]")) { RECENT = []; store.set("ost-recent", RECENT); openCollection({ push: false }); return; }
+      const cp = e.target.closest("[data-copy]");
+      if (cp) {
+        navigator.clipboard?.writeText(cp.dataset.copy).then(() => toast("已複製條碼"), () => toast("無法複製，請手動選取"));
+        return;
+      }
       const c = e.target.closest(".card[data-i], .alt-row[data-i], .cmp-main[data-i]");
-      if (c && !c.closest(".sb-hero")) { e.preventDefault(); openSheet(ITEMS[+c.dataset.i]); return; }
+      if (c && !c.closest(".sb-hero")) { e.preventDefault(); openSheet(ITEMS[+c.dataset.i], { back: c.dataset.back === "col" }); return; }
       if (e.target.closest("[data-close]")) closeSheet();
       if (e.target.closest("[data-share]")) share();
       const fr = e.target.closest("a[data-fr]");
@@ -745,8 +981,11 @@
   load().then(() => {
     renderHero(); renderTicker(); renderUpcoming(); renderPulse(); renderNews(); renderStores();
     bindCatalog(); bindSheet();
-    const id = new URLSearchParams(location.search).get("item");
-    const hit = id && ITEMS.find((i) => i.id === id);
+    updateFavBadge();
+    $("#favBtn").addEventListener("click", () => openCollection());
+    const params = new URLSearchParams(location.search);
+    const hit = params.get("item") && BY_ID.get(params.get("item"));
     if (hit) openSheet(hit, { push: false });
+    else if (params.get("view") === "fav") openCollection({ push: false });
   });
 })();
