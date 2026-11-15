@@ -1,7 +1,7 @@
 {
- "generated": "2026-11-14 16:36",
- "seconds": 2502,
- "total": 9476,
+ "generated": "2026-11-15 09:53",
+ "seconds": 1646,
+ "total": 9663,
  "news": 246,
  "sources": [
   {
@@ -81,7 +81,7 @@
    "name": "爛調唱片",
    "type": "唱片行",
    "home": "https://www.rottenblues.com/",
-   "count": 376,
+   "count": 378,
    "errors": 0,
    "down": ""
   },
@@ -99,7 +99,7 @@
    "name": "宇宙唱片",
    "type": "唱片行",
    "home": "https://www.cosmicmusicrecord.com/",
-   "count": 1205,
+   "count": 1335,
    "errors": 0,
    "down": ""
   },
@@ -108,7 +108,7 @@
    "name": "露天拍賣",
    "type": "拍賣",
    "home": "https://www.ruten.com.tw/",
-   "count": 2435,
+   "count": 2434,
    "errors": 0,
    "down": ""
   },
@@ -117,7 +117,7 @@
    "name": "Yahoo 拍賣",
    "type": "拍賣",
    "home": "https://tw.bid.yahoo.com/",
-   "count": 1378,
+   "count": 1434,
    "errors": 0,
    "down": ""
   },
@@ -132,20 +132,20 @@
   }
  ],
  "status": {
-  "預購": 282,
-  "現貨": 5259,
-  "可訂購": 1106,
+  "預購": 361,
+  "現貨": 5352,
+  "可訂購": 1053,
   "待確認": 385,
-  "缺貨": 2444
+  "缺貨": 2512
  },
  "stale": 0,
  "formats": {
-  "vinyl": 6966,
-  "7inch": 159,
-  "cd": 2013,
+  "vinyl": 7109,
+  "7inch": 171,
+  "cd": 2045,
   "cassette": 338
  },
- "verified": 8458,
+ "verified": 9018,
  "franchises": [
   "AKIRA",
   "BanG Dream!",
