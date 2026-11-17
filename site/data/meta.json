@@ -1,8 +1,8 @@
 {
- "generated": "2026-11-16 10:03",
- "seconds": 1483,
- "total": 9279,
- "news": 247,
+ "generated": "2026-11-17 12:29",
+ "seconds": 1485,
+ "total": 9762,
+ "news": 251,
  "sources": [
   {
    "key": "books",
@@ -18,8 +18,8 @@
    "name": "誠品線上",
    "type": "書店電商",
    "home": "https://www.eslite.com/",
-   "count": 289,
-   "errors": 0,
+   "count": 288,
+   "errors": 1,
    "down": ""
   },
   {
@@ -99,7 +99,7 @@
    "name": "宇宙唱片",
    "type": "唱片行",
    "home": "https://www.cosmicmusicrecord.com/",
-   "count": 1339,
+   "count": 1353,
    "errors": 0,
    "down": ""
   },
@@ -108,7 +108,7 @@
    "name": "露天拍賣",
    "type": "拍賣",
    "home": "https://www.ruten.com.tw/",
-   "count": 2055,
+   "count": 2536,
    "errors": 0,
    "down": ""
   },
@@ -117,7 +117,7 @@
    "name": "Yahoo 拍賣",
    "type": "拍賣",
    "home": "https://tw.bid.yahoo.com/",
-   "count": 1425,
+   "count": 1414,
    "errors": 0,
    "down": ""
   },
@@ -132,20 +132,20 @@
   }
  ],
  "status": {
-  "預購": 358,
-  "現貨": 4997,
-  "可訂購": 1024,
-  "待確認": 382,
-  "缺貨": 2518
+  "預購": 296,
+  "現貨": 5102,
+  "可訂購": 518,
+  "待確認": 1339,
+  "缺貨": 2507
  },
- "stale": 0,
+ "stale": 1773,
  "formats": {
-  "vinyl": 6806,
-  "7inch": 152,
-  "cd": 1998,
-  "cassette": 323
+  "vinyl": 7199,
+  "7inch": 167,
+  "cd": 2056,
+  "cassette": 340
  },
- "verified": 8828,
+ "verified": 8517,
  "franchises": [
   "AKIRA",
   "BanG Dream!",
