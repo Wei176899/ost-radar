@@ -1,7 +1,7 @@
 {
- "generated": "2026-11-18 11:42",
- "seconds": 1484,
- "total": 9753,
+ "generated": "2026-11-18 19:38",
+ "seconds": 1217,
+ "total": 9761,
  "news": 247,
  "sources": [
   {
@@ -9,9 +9,9 @@
    "name": "博客來",
    "type": "書店電商",
    "home": "https://www.books.com.tw/",
-   "count": 285,
-   "errors": 6,
-   "down": "連續 6 次連線失敗（可能封鎖海外連線）"
+   "count": 289,
+   "errors": 2,
+   "down": ""
   },
   {
    "key": "eslite",
@@ -36,9 +36,9 @@
    "name": "燭光唱片",
    "type": "唱片行",
    "home": "https://www.candlelightrecords.tw/",
-   "count": 664,
+   "count": 668,
    "errors": 0,
-   "down": "連續 6 次連線失敗（可能封鎖海外連線）"
+   "down": ""
   },
   {
    "key": "shs",
@@ -127,25 +127,25 @@
    "type": "拍賣",
    "home": "https://www.myacg.com.tw/",
    "count": 28,
-   "errors": 6,
-   "down": "連續 6 次連線失敗（可能封鎖海外連線）"
+   "errors": 0,
+   "down": ""
   }
  ],
  "status": {
-  "預購": 294,
-  "現貨": 5095,
+  "預購": 367,
+  "現貨": 5430,
   "可訂購": 519,
-  "待確認": 1339,
-  "缺貨": 2506
+  "待確認": 951,
+  "缺貨": 2494
  },
- "stale": 1773,
+ "stale": 796,
  "formats": {
-  "vinyl": 7194,
+  "vinyl": 7200,
   "7inch": 167,
-  "cd": 2052,
+  "cd": 2054,
   "cassette": 340
  },
- "verified": 8510,
+ "verified": 8720,
  "franchises": [
   "AKIRA",
   "BanG Dream!",
