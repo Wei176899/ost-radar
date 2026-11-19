@@ -1,7 +1,7 @@
 {
- "generated": "2026-11-18 19:38",
- "seconds": 1217,
- "total": 9761,
+ "generated": "2026-11-19 11:24",
+ "seconds": 1679,
+ "total": 9264,
  "news": 247,
  "sources": [
   {
@@ -10,8 +10,8 @@
    "type": "書店電商",
    "home": "https://www.books.com.tw/",
    "count": 289,
-   "errors": 2,
-   "down": ""
+   "errors": 6,
+   "down": "連續 6 次連線失敗（可能封鎖海外連線）"
   },
   {
    "key": "eslite",
@@ -27,7 +27,7 @@
    "name": "玫瑰大眾",
    "type": "唱片行",
    "home": "https://www.g-music.com.tw/",
-   "count": 265,
+   "count": 264,
    "errors": 0,
    "down": ""
   },
@@ -38,7 +38,7 @@
    "home": "https://www.candlelightrecords.tw/",
    "count": 668,
    "errors": 0,
-   "down": ""
+   "down": "連續 6 次連線失敗（可能封鎖海外連線）"
   },
   {
    "key": "shs",
@@ -81,7 +81,7 @@
    "name": "爛調唱片",
    "type": "唱片行",
    "home": "https://www.rottenblues.com/",
-   "count": 380,
+   "count": 382,
    "errors": 0,
    "down": ""
   },
@@ -90,7 +90,7 @@
    "name": "THT 唱片",
    "type": "唱片行",
    "home": "https://www.thtrecords.com/",
-   "count": 718,
+   "count": 719,
    "errors": 0,
    "down": ""
   },
@@ -99,7 +99,7 @@
    "name": "宇宙唱片",
    "type": "唱片行",
    "home": "https://www.cosmicmusicrecord.com/",
-   "count": 1353,
+   "count": 1355,
    "errors": 0,
    "down": ""
   },
@@ -108,7 +108,7 @@
    "name": "露天拍賣",
    "type": "拍賣",
    "home": "https://www.ruten.com.tw/",
-   "count": 2536,
+   "count": 2068,
    "errors": 0,
    "down": ""
   },
@@ -117,7 +117,7 @@
    "name": "Yahoo 拍賣",
    "type": "拍賣",
    "home": "https://tw.bid.yahoo.com/",
-   "count": 1404,
+   "count": 1371,
    "errors": 0,
    "down": ""
   },
@@ -127,25 +127,25 @@
    "type": "拍賣",
    "home": "https://www.myacg.com.tw/",
    "count": 28,
-   "errors": 0,
-   "down": ""
+   "errors": 6,
+   "down": "連續 6 次連線失敗（可能封鎖海外連線）"
   }
  ],
  "status": {
-  "預購": 367,
-  "現貨": 5430,
-  "可訂購": 519,
-  "待確認": 951,
-  "缺貨": 2494
+  "預購": 343,
+  "現貨": 4951,
+  "可訂購": 523,
+  "待確認": 960,
+  "缺貨": 2487
  },
  "stale": 796,
  "formats": {
-  "vinyl": 7200,
-  "7inch": 167,
-  "cd": 2054,
-  "cassette": 340
+  "vinyl": 6790,
+  "7inch": 156,
+  "cd": 1999,
+  "cassette": 319
  },
- "verified": 8720,
+ "verified": 8219,
  "franchises": [
   "AKIRA",
   "BanG Dream!",
