@@ -1,8 +1,8 @@
 {
- "generated": "2026-11-19 11:24",
- "seconds": 1679,
- "total": 9264,
- "news": 247,
+ "generated": "2026-11-20 11:12",
+ "seconds": 1497,
+ "total": 9419,
+ "news": 250,
  "sources": [
   {
    "key": "books",
@@ -38,7 +38,7 @@
    "home": "https://www.candlelightrecords.tw/",
    "count": 668,
    "errors": 0,
-   "down": "連續 6 次連線失敗（可能封鎖海外連線）"
+   "down": "本次未取得資料"
   },
   {
    "key": "shs",
@@ -81,7 +81,7 @@
    "name": "爛調唱片",
    "type": "唱片行",
    "home": "https://www.rottenblues.com/",
-   "count": 382,
+   "count": 385,
    "errors": 0,
    "down": ""
   },
@@ -90,7 +90,7 @@
    "name": "THT 唱片",
    "type": "唱片行",
    "home": "https://www.thtrecords.com/",
-   "count": 719,
+   "count": 722,
    "errors": 0,
    "down": ""
   },
@@ -99,7 +99,7 @@
    "name": "宇宙唱片",
    "type": "唱片行",
    "home": "https://www.cosmicmusicrecord.com/",
-   "count": 1355,
+   "count": 1369,
    "errors": 0,
    "down": ""
   },
@@ -108,7 +108,7 @@
    "name": "露天拍賣",
    "type": "拍賣",
    "home": "https://www.ruten.com.tw/",
-   "count": 2068,
+   "count": 2191,
    "errors": 0,
    "down": ""
   },
@@ -117,7 +117,7 @@
    "name": "Yahoo 拍賣",
    "type": "拍賣",
    "home": "https://tw.bid.yahoo.com/",
-   "count": 1371,
+   "count": 1383,
    "errors": 0,
    "down": ""
   },
@@ -132,20 +132,20 @@
   }
  ],
  "status": {
-  "預購": 343,
-  "現貨": 4951,
-  "可訂購": 523,
+  "預購": 352,
+  "現貨": 5097,
+  "可訂購": 533,
   "待確認": 960,
-  "缺貨": 2487
+  "缺貨": 2477
  },
  "stale": 796,
  "formats": {
-  "vinyl": 6790,
-  "7inch": 156,
-  "cd": 1999,
-  "cassette": 319
+  "vinyl": 6890,
+  "7inch": 161,
+  "cd": 2038,
+  "cassette": 330
  },
- "verified": 8219,
+ "verified": 8370,
  "franchises": [
   "AKIRA",
   "BanG Dream!",
